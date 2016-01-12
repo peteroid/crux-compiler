@@ -16,17 +16,29 @@ public class Scanner implements Iterable<Token> {
 	Scanner(Reader reader)
 	{
 		// TODO: initialize the Scanner
+		input = reader;
+		lineNum = 1;
+		charPos = 1;
+		nextChar = readChar();
 	}	
 	
 	// OPTIONAL: helper function for reading a single char from input
 	//           can be used to catch and handle any IOExceptions,
 	//           advance the charPos or lineNum, etc.
-	/*
+
 	private int readChar() {
-	
+		int c = -2;
+		try {
+			c = input.read();
+			System.out.println(String.valueOf(c) + " detected!");
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.out.print(String.valueOf(c) + " caused error!");
+		}
+		return c;
 	}
-	*/
-		
+
+
 
 	/* Invariants:
 	 *  1. call assumes that nextChar is already holding an unread character
@@ -35,7 +47,35 @@ public class Scanner implements Iterable<Token> {
 	public Token next()
 	{
 		// TODO: implement this
-		return null;
+		Token t;
+		switch (nextChar) {
+			case -1:
+				t = Token.EOF(lineNum, charPos);
+				break;
+			case ' ':
+				charPos++;
+				nextChar = readChar();
+				t = next();
+				break;
+			case '\n':
+				lineNum++;
+				charPos = 1;
+				nextChar = readChar();
+				t = next();
+				break;
+			default:
+				String read = String.valueOf((char) nextChar);
+				int charCount = 0;
+				while (Token.Kind.matches(read)) {
+					charCount++;
+					nextChar = readChar();
+					read += String.valueOf((char) nextChar);
+				}
+				t = new Token(read.substring(0, charCount), lineNum, charPos);
+				charPos += charCount;
+				break;
+		}
+		return t;
 	}
 
 	@Override

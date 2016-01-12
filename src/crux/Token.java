@@ -16,9 +16,37 @@ public class Token {
 		INTEGER(),
 		FLOAT(),
 		ERROR(),
-		EOF();
+		EOF(),
 		
 		// TODO: complete the list of possible tokens
+		LET("let"),
+		VAR("var"),
+		ARRAY("array"),
+		FUNC("func"),
+		IF("if"),
+		ELSE("else"),
+		WHILE("while"),
+		TRUE("true"),
+		FALSE("false"),
+		RETURN("return"),
+
+		OPEN_PAREN("("),
+		CLOSE_PAREN(")"),
+		OPEN_BRACE("{"),
+		CLOSE_BRACE("}"),
+		OPEN_BRACKET("["),
+		CLOSE_BRACKET("]"),
+		GREATER_EQUAL(">="),
+		LESSER_EQUAL("<="),
+		NOT_EQUAL("!="),
+		EQUAL("=="),
+		GREATER_THAN(">"),
+		LESS_THAN("<"),
+		ASSIGN("="),
+		COMMA(","),
+		SEMICOLON(";"),
+		COLON(":"),
+		CALL("::");
 		
 		private String default_lexeme;
 		
@@ -40,6 +68,14 @@ public class Token {
 		// OPTIONAL: if you wish to also make convenience functions, feel free
 		//           for example, boolean matches(String lexeme)
 		//           can report whether a Token.Kind has the given lexeme
+
+		static boolean matches(String lexeme) {
+			for (Kind kind : Kind.values()) {
+				if (kind.default_lexeme.equals(lexeme))
+					return true;
+			}
+			return false;
+		}
 	}
 	
 	private int lineNum;
@@ -49,14 +85,19 @@ public class Token {
 	
 	
 	// OPTIONAL: implement factory functions for some tokens, as you see fit
-	/*           
 	public static Token EOF(int linePos, int charPos)
 	{
 		Token tok = new Token(linePos, charPos);
 		tok.kind = Kind.EOF;
 		return tok;
 	}
-	*/
+
+	public static Token Identifier(String name, int lineNum, int charPos){
+		Token t = new Token(lineNum, charPos);
+		t.kind = Kind.IDENTIFIER;
+		t.lexeme = name;
+		return t;
+	}
 
 	private Token(int lineNum, int charPos)
 	{
@@ -74,6 +115,13 @@ public class Token {
 		this.charPos = charPos;
 		
 		// TODO: based on the given lexeme determine and set the actual kind
+		for (Kind kind : Kind.values()) {
+			if (kind.default_lexeme.equals(lexeme)){
+				this.kind = kind;
+				this.lexeme = lexeme;
+				return;
+			}
+		}
 		
 		// if we don't match anything, signal error
 		this.kind = Kind.ERROR;
@@ -94,17 +142,21 @@ public class Token {
 	public String lexeme()
 	{
 		// TODO: implement
-		return null;
+		return this.lexeme;
 	}
 	
 	public String toString()
 	{
 		// TODO: implement this
-		return "Not Yet Implemented";
+		return this.kind.name() +
+				"(lineNum:" + String.valueOf(this.lineNum) +
+				", charPos:" + String.valueOf(this.charPos) + ")";
 	}
 	
 	// OPTIONAL: function to query a token about its kind
-	//           boolean is(Token.Kind kind)
+	public boolean is(Token.Kind kind) {
+		return kind.equals(this.kind);
+	}
 	
 	// OPTIONAL: add any additional helper or convenience methods
 	//           that you find make for a clean design
