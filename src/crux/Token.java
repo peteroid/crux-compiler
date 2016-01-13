@@ -176,7 +176,7 @@ public class Token {
 		
 		// if we don't match anything, signal error
 		this.kind = Kind.ERROR;
-		this.lexeme = "Unrecognized lexeme: " + lexeme;
+		this.lexeme = lexeme;
 	}
 	
 	public int lineNumber()
@@ -200,6 +200,8 @@ public class Token {
 	{
 		// TODO: implement this
 		return this.kind.name() +
+				(this.is(Kind.ERROR)? "(Unexpected character: " + this.lexeme() + ")" : "") +
+				(this.is(Kind.INTEGER) || this.is(Kind.FLOAT)? "(" + this.lexeme() + ")" : "") +
 				"(lineNum:" + String.valueOf(this.lineNum) +
 				", charPos:" + String.valueOf(this.charPos) + ")";
 	}

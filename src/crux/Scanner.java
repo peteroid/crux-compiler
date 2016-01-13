@@ -51,7 +51,7 @@ public class Scanner implements Iterable<Token> {
 			stringBuffer = stringBuffer.substring(1);
 		} else {
 			try {
-				c = readInput.read();
+				c = input.read();
 //			System.out.println(String.valueOf(c) + " detected!");
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -60,22 +60,6 @@ public class Scanner implements Iterable<Token> {
 		}
 		return c == 65535? -1 : c;
 	}
-
-//	private void markInput() {
-//		try {
-//			input.mark(2);
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//	}
-//
-//	private void resetInput() {
-//		try {
-//			input.reset();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//	}
 
 	/* Invariants:
 	 *  1. call assumes that nextChar is already holding an unread character
@@ -148,9 +132,10 @@ public class Scanner implements Iterable<Token> {
 							currentStates.add(State.END);
 						break;
 					case SPECIAL_CHAR:
-						nextStates.add(State.END);
-//						if (Token.Kind.matchesWithSpecialChars(readString + (char) nextChar))
-//							nextStates.add(State.END);
+						if (Token.Kind.matchesWithSpecialChars(readString + (char) nextChar))
+							nextStates.add(State.END);
+						else
+							currentStates.add(State.END);
 						break;
 					case END:
 						int lastChar = nextChar;
@@ -168,11 +153,11 @@ public class Scanner implements Iterable<Token> {
 						} else {
 							if (Token.Kind.matches(lexeme)) {
 								t = new Token(lexeme, lineNum, charPos);
-							} else if (isDigit(lexeme.charAt(0))) {
-								t = Token.Integer(lexeme, lineNum, charPos);
 							} else if (lexeme.indexOf('.') != -1) {
 								t = Token.Float(lexeme, lineNum, charPos);
-							} else if (isIdentifier(lexeme)) {
+							} else if (isDigit(lexeme.charAt(0))) {
+								t = Token.Integer(lexeme, lineNum, charPos);
+							}  else if (isIdentifier(lexeme)) {
 								t = Token.Identifier(lexeme, lineNum, charPos);
 							} else {
 								t = new Token(lexeme, lineNum, charPos);
@@ -197,18 +182,21 @@ public class Scanner implements Iterable<Token> {
 				} else if (nextChar == ' ') {
 					charPos++;
 				} else {
-					readString += (char) nextChar;
+					readString += String.valueOf((char) nextChar);
 				}
 			} else {
-				readString += (char) nextChar;
+				readString += String.valueOf((char) nextChar);
 			}
-			nextChar = readChar();
+
+			if (!nextStates.isEmpty())
+				nextChar = readChar();
 		} while (!nextStates.isEmpty());
 
 		if (readString.length() > lastMatch.lexeme().length())
 			stringBuffer = readString.substring(lastMatch.lexeme().length());
 
 		nextChar = readChar();
+		charPos += lastMatch.lexeme().length();
 		return lastMatch;
 	}
 
