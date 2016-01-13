@@ -12,12 +12,6 @@ public class Token {
 		MUL("*"),
 		DIV("/"),
 		
-		IDENTIFIER(),
-		INTEGER(),
-		FLOAT(),
-		ERROR(),
-		EOF(),
-		
 		// TODO: complete the list of possible tokens
 		LET("let"),
 		VAR("var"),
@@ -29,6 +23,12 @@ public class Token {
 		TRUE("true"),
 		FALSE("false"),
 		RETURN("return"),
+
+		IDENTIFIER(),
+		INTEGER(),
+		FLOAT(),
+		ERROR(),
+		EOF(),
 
 		OPEN_PAREN("("),
 		CLOSE_PAREN(")"),
@@ -47,7 +47,15 @@ public class Token {
 		SEMICOLON(";"),
 		COLON(":"),
 		CALL("::");
-		
+
+		public final static Kind[] KEYWORDS =
+				{AND, OR, NOT, LET, VAR, ARRAY, FUNC, IF, ELSE, WHILE, TRUE, FALSE, RETURN};
+
+		public final static Kind[] SPECIAL_CHARS =
+				{OPEN_PAREN, CLOSE_PAREN, OPEN_BRACE, CLOSE_BRACE, OPEN_BRACKET, CLOSE_BRACKET,
+				ADD, SUB, MUL, DIV, GREATER_EQUAL, LESSER_EQUAL, NOT_EQUAL, EQUAL, GREATER_THAN,
+				LESS_THAN, ASSIGN, COMMA, SEMICOLON, COLON, CALL};
+
 		private String default_lexeme;
 		
 		Kind()
@@ -70,11 +78,40 @@ public class Token {
 		//           can report whether a Token.Kind has the given lexeme
 
 		static boolean matches(String lexeme) {
-			for (Kind kind : Kind.values()) {
-				if (kind.default_lexeme.equals(lexeme))
+			return matchesWithSpecialChars(lexeme) || matchesWithKeywords(lexeme);
+		}
+
+		private static boolean matchesWithKinds(Kind[] kinds, String s) {
+			for (Kind kind : kinds) {
+				if (kind.default_lexeme.equals(s))
 					return true;
 			}
 			return false;
+		}
+
+		static boolean matchesWithSpecialChars(String s) {
+			return matchesWithKinds(SPECIAL_CHARS, s);
+		}
+
+		static boolean matchesWithKeywords(String s) {
+			return matchesWithKinds(KEYWORDS, s);
+		}
+
+		private static boolean startsWithKinds(Kind[] kinds, String s) {
+			for (Kind kind : kinds) {
+				if (kind.default_lexeme.startsWith(s)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		static boolean startsWithSpecialChars(String s) {
+			return startsWithKinds(SPECIAL_CHARS, s);
+		}
+
+		static boolean startsWithKeywords(String s) {
+			return startsWithKinds(KEYWORDS, s);
 		}
 	}
 	
@@ -95,6 +132,20 @@ public class Token {
 	public static Token Identifier(String name, int lineNum, int charPos){
 		Token t = new Token(lineNum, charPos);
 		t.kind = Kind.IDENTIFIER;
+		t.lexeme = name;
+		return t;
+	}
+
+	public static Token Integer(String name, int lineNum, int charPos){
+		Token t = new Token(lineNum, charPos);
+		t.kind = Kind.INTEGER;
+		t.lexeme = name;
+		return t;
+	}
+
+	public static Token Float(String name, int lineNum, int charPos){
+		Token t = new Token(lineNum, charPos);
+		t.kind = Kind.FLOAT;
 		t.lexeme = name;
 		return t;
 	}
@@ -160,5 +211,4 @@ public class Token {
 	
 	// OPTIONAL: add any additional helper or convenience methods
 	//           that you find make for a clean design
-
 }
