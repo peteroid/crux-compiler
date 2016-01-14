@@ -2,7 +2,7 @@ package crux;
 
 public class Token {
 	
-	public static enum Kind {
+	public enum Kind {
 		AND("and"),
 		OR("or"),
 		NOT("not"),
@@ -199,12 +199,24 @@ public class Token {
 	public String toString()
 	{
 		// TODO: implement this
-		return this.kind.name() +
-				(this.is(Kind.ERROR)? "(Unexpected character: " + this.lexeme() + ")" : "") +
-				(this.is(Kind.INTEGER) || this.is(Kind.FLOAT)? "(" + this.lexeme() + ")" : "") +
-				(this.is(Kind.IDENTIFIER)? "(" + this.lexeme() + ")" : "") +
-				"(lineNum:" + String.valueOf(this.lineNum) +
+		String str = this.kind.name();
+		switch (this.kind) {
+			case ERROR:
+				str += "(Unexpected character: " + this.lexeme() + ")";
+				break;
+			case INTEGER:
+			case FLOAT:
+				str += "(" + this.lexeme() + ")";
+				break;
+			case IDENTIFIER:
+				str += "(" + this.lexeme() + ")";
+				break;
+			default:
+				break;
+		}
+		str += "(lineNum:" + String.valueOf(this.lineNum) +
 				", charPos:" + String.valueOf(this.charPos) + ")";
+		return  str;
 	}
 	
 	// OPTIONAL: function to query a token about its kind

@@ -1,11 +1,9 @@
 package crux;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Set;
 
 public class Scanner implements Iterable<Token> {
 	public static String studentName = "TODO: YOUR NAME";
@@ -15,8 +13,10 @@ public class Scanner implements Iterable<Token> {
 	private int lineNum;  // current line count
 	private int charPos;  // character offset for current line
 	private int nextChar; // contains the next char (-1 == EOF)
-	private Reader input, readInput;
+	private Reader input;
 
+	// stringBuffer is used to store the extra characters read by the programme
+	// this is used to reset the reader
 	private String stringBuffer;
 
 	private enum State {
@@ -30,11 +30,9 @@ public class Scanner implements Iterable<Token> {
 		COMMENT
 	}
 	
-	Scanner(Reader reader)
-	{
-		// TODO: initialize the Scanner
+	Scanner(Reader reader) {
+		// initialize the Scanner
 		input = reader;
-		readInput = new BufferedReader(input);
 		lineNum = 1;
 		charPos = 1;
 		stringBuffer = "";
@@ -53,10 +51,8 @@ public class Scanner implements Iterable<Token> {
 		} else {
 			try {
 				c = input.read();
-//			System.out.println(String.valueOf(c) + " detected!");
 			} catch (IOException e) {
 				e.printStackTrace();
-//			System.out.print(String.valueOf(c) + " caused error!");
 			}
 		}
 		return c == 65535? -1 : c;
@@ -68,8 +64,7 @@ public class Scanner implements Iterable<Token> {
 	 */
 	public Token next()
 	{
-		// TODO: implement this
-		State currentState, lastState = null;
+		State currentState;
 		LinkedList<State> nextStates = new LinkedList<State>();
 		nextStates.add(State.START);
 
@@ -98,20 +93,18 @@ public class Scanner implements Iterable<Token> {
 						}
 						break;
 					case INTEGER:
-						if (isDot(nextChar)) {
+						if (isDot(nextChar))
 							nextStates.add(State.FLOAT);
-						} else if (isDigit(nextChar)) {
+						else if (isDigit(nextChar))
 							nextStates.add(State.INTEGER);
-						} else {
+						else
 							currentStates.add(State.END);
-						}
 						break;
 					case FLOAT:
-						if (isDigit(nextChar)) {
+						if (isDigit(nextChar))
 							nextStates.add(State.FLOAT);
-						} else {
+						else
 							currentStates.add(State.END);
-						}
 						break;
 					case KEYWORD:
 						if (isLetter(nextChar))
@@ -139,10 +132,11 @@ public class Scanner implements Iterable<Token> {
 							currentStates.clear();
 							nextStates.clear();
 							currentStates.add(State.COMMENT);
-						} else if (Token.Kind.matchesWithSpecialChars(readString + (char) nextChar))
+						} else if (Token.Kind.matchesWithSpecialChars(readString + (char) nextChar)) {
 							nextStates.add(State.END);
-						else
+						} else {
 							currentStates.add(State.END);
+						}
 						break;
 					case COMMENT:
 						// ignore the char until the line break
@@ -155,14 +149,13 @@ public class Scanner implements Iterable<Token> {
 						nextStates.add(State.START);
 						break;
 					case END:
-						int lastChar = nextChar;
 
 						// get the matched token
 						String lexeme = readString;
 						Token t = null;
 
 						if (lexeme.isEmpty()) {
-							if (nextChar == (int) '\n' || nextChar == (int) ' ') {
+							if (nextChar == '\n' || nextChar == ' ' || nextChar == '\t') {
 								nextStates.add(State.START);
 							} else if (nextChar == -1) {
 								t = Token.EOF(lineNum, charPos);
@@ -170,23 +163,21 @@ public class Scanner implements Iterable<Token> {
 								t = new Token(String.valueOf((char) nextChar), lineNum, charPos);
 							}
 						} else {
-							if (Token.Kind.matches(lexeme)) {
+							if (Token.Kind.matches(lexeme))
 								t = new Token(lexeme, lineNum, charPos);
-							} else if (lexeme.indexOf('.') != -1) {
+							else if (lexeme.indexOf('.') != -1)
 								t = Token.Float(lexeme, lineNum, charPos);
-							} else if (isDigit(lexeme.charAt(0))) {
+							else if (isDigit(lexeme.charAt(0)))
 								t = Token.Integer(lexeme, lineNum, charPos);
-							}  else if (isIdentifier(lexeme)) {
+							else if (isIdentifier(lexeme))
 								t = Token.Identifier(lexeme, lineNum, charPos);
-							} else {
+							else
 								t = new Token(lexeme, lineNum, charPos);
-							}
 						}
 
 						// determine the lastMatch
-						if ((t != null) && (lastMatch == null || !t.is(Token.Kind.ERROR))) {
+						if ((t != null) && (lastMatch == null || !t.is(Token.Kind.ERROR)))
 							lastMatch = t;
-						}
 						break;
 					default:
 						System.out.println("Unexpected state");
@@ -195,14 +186,12 @@ public class Scanner implements Iterable<Token> {
 			}
 
 			if (readString.isEmpty()) {
-				if (nextChar == (int) '\n') {
+				if (nextChar == '\n') {
 					lineNum++;
 					charPos = 1;
-				} else if (nextChar == ' ') {
+				} else if (nextChar == ' ' || nextChar == '\t') {
 					charPos++;
-				} else if (nextChar == -1) {
-					// EOF
-				} else {
+				} else if (nextChar != -1) {
 					readString += String.valueOf((char) nextChar);
 				}
 			} else {
@@ -248,11 +237,11 @@ public class Scanner implements Iterable<Token> {
 	}
 
 	public static boolean isIdentifierLexeme(int c) {
-		return isDigit(c) || c == (int) '_' || isLetter(c);
+		return isDigit(c) || c == '_' || isLetter(c);
 	}
 
 	public static boolean isIdentifier(String s) {
-		if (!s.isEmpty() && (s.charAt(0) == (int) '_' || isLetter(s.charAt(0)))) {
+		if (!s.isEmpty() && (s.charAt(0) == '_' || isLetter(s.charAt(0)))) {
 			for (char c : s.toCharArray())
 				if (!isIdentifierLexeme(c))
 					return false;

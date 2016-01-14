@@ -55,4 +55,4 @@ crashlytics-build.properties
 fabric.properties
 
 # for testing files
-/crux-tests/
+/crux-tests*
