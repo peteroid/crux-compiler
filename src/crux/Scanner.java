@@ -26,7 +26,8 @@ public class Scanner implements Iterable<Token> {
 		KEYWORD,
 		IDENTIFIER,
 		INTEGER,
-		FLOAT
+		FLOAT,
+		COMMENT
 	}
 	
 	Scanner(Reader reader)
@@ -114,16 +115,18 @@ public class Scanner implements Iterable<Token> {
 						break;
 					case KEYWORD:
 						if (isLetter(nextChar))
-							if (Token.Kind.matchesWithKeywords(readString + (char) nextChar))
+							if (Token.Kind.matchesWithKeywords(readString + (char) nextChar)) {
 								nextStates.add(State.END);
-							else if (Token.Kind.startsWithKeywords(readString + (char) nextChar))
-								nextStates.add(State.KEYWORD);
-							else
 								nextStates.add(State.IDENTIFIER);
+							} else if (Token.Kind.startsWithKeywords(readString + (char) nextChar)) {
+								nextStates.add(State.KEYWORD);
+							} else {
+								nextStates.add(State.IDENTIFIER);
+							}
 						else if (isIdentifierLexeme(nextChar))
 							nextStates.add(State.IDENTIFIER);
 						else
-							nextStates.add(State.END);
+							currentStates.add(State.END);
 						break;
 					case IDENTIFIER:
 						if (isIdentifierLexeme(nextChar))
@@ -132,10 +135,24 @@ public class Scanner implements Iterable<Token> {
 							currentStates.add(State.END);
 						break;
 					case SPECIAL_CHAR:
-						if (Token.Kind.matchesWithSpecialChars(readString + (char) nextChar))
+						if ((readString + (char) nextChar).equals("//")) {
+							currentStates.clear();
+							nextStates.clear();
+							currentStates.add(State.COMMENT);
+						} else if (Token.Kind.matchesWithSpecialChars(readString + (char) nextChar))
 							nextStates.add(State.END);
 						else
 							currentStates.add(State.END);
+						break;
+					case COMMENT:
+						// ignore the char until the line break
+						charPos++;
+						while (nextChar != '\n' && nextChar != -1) {
+							nextChar = readChar();
+							charPos++;
+						}
+						readString = "";
+						nextStates.add(State.START);
 						break;
 					case END:
 						int lastChar = nextChar;
@@ -149,6 +166,8 @@ public class Scanner implements Iterable<Token> {
 								nextStates.add(State.START);
 							} else if (nextChar == -1) {
 								t = Token.EOF(lineNum, charPos);
+							} else {
+								t = new Token(String.valueOf((char) nextChar), lineNum, charPos);
 							}
 						} else {
 							if (Token.Kind.matches(lexeme)) {
@@ -181,6 +200,8 @@ public class Scanner implements Iterable<Token> {
 					charPos = 1;
 				} else if (nextChar == ' ') {
 					charPos++;
+				} else if (nextChar == -1) {
+					// EOF
 				} else {
 					readString += String.valueOf((char) nextChar);
 				}

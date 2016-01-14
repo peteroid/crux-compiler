@@ -202,6 +202,7 @@ public class Token {
 		return this.kind.name() +
 				(this.is(Kind.ERROR)? "(Unexpected character: " + this.lexeme() + ")" : "") +
 				(this.is(Kind.INTEGER) || this.is(Kind.FLOAT)? "(" + this.lexeme() + ")" : "") +
+				(this.is(Kind.IDENTIFIER)? "(" + this.lexeme() + ")" : "") +
 				"(lineNum:" + String.valueOf(this.lineNum) +
 				", charPos:" + String.valueOf(this.charPos) + ")";
 	}
