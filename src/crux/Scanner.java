@@ -5,10 +5,10 @@ import java.io.Reader;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-public class Scanner implements Iterable<Token> {
 	public static String studentName = "TODO: YOUR NAME";
 	public static String studentID = "TODO: Your 8-digit id";
 	public static String uciNetID = "TODO: uci-net id";
+public class Scanner implements Iterable<Token>, Iterator<Token> {
 	
 	private int lineNum;  // current line count
 	private int charPos;  // character offset for current line
@@ -18,6 +18,7 @@ public class Scanner implements Iterable<Token> {
 	// stringBuffer is used to store the extra characters read by the programme
 	// this is used to reset the reader
 	private String stringBuffer;
+	private boolean isReachedEOF;
 
 	private enum State {
 		START,
@@ -37,6 +38,7 @@ public class Scanner implements Iterable<Token> {
 		charPos = 1;
 		stringBuffer = "";
 		nextChar = readChar();
+		isReachedEOF = false;
 	}
 	
 	// OPTIONAL: helper function for reading a single char from input
@@ -58,10 +60,15 @@ public class Scanner implements Iterable<Token> {
 		return c == 65535? -1 : c;
 	}
 
+	@Override
+	public boolean hasNext() {
+		return !isReachedEOF;
+	}
+
 	/* Invariants:
-	 *  1. call assumes that nextChar is already holding an unread character
-	 *  2. return leaves nextChar containing an untokenized character
-	 */
+     *  1. call assumes that nextChar is already holding an unread character
+     *  2. return leaves nextChar containing an untokenized character
+     */
 	public Token next()
 	{
 		State currentState;
@@ -159,6 +166,7 @@ public class Scanner implements Iterable<Token> {
 								nextStates.add(State.START);
 							} else if (nextChar == -1) {
 								t = Token.EOF(lineNum, charPos);
+								isReachedEOF = true;
 							} else {
 								t = new Token(String.valueOf((char) nextChar), lineNum, charPos);
 							}
@@ -211,8 +219,13 @@ public class Scanner implements Iterable<Token> {
 	}
 
 	@Override
+	public void remove() {
+		// not supported, not going to implement
+	}
+
+	@Override
 	public Iterator<Token> iterator() {
-		return null;
+		return this;
 	}
 
 	// OPTIONAL: any other methods that you find convenient for implementation or testing
