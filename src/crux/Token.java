@@ -117,7 +117,7 @@ public class Token {
 	
 	private int lineNum;
 	private int charPos;
-	Kind kind;
+	private Kind kind;
 	private String lexeme = "";
 	
 	
@@ -188,6 +188,8 @@ public class Token {
 	{
 		return charPos;
 	}
+
+	public Kind kind() { return kind; }
 	
 	// Return the lexeme representing or held by this token
 	public String lexeme()
