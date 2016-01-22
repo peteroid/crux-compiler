@@ -1,9 +1,5 @@
 package crux;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
-
 public class Parser {
     public static String studentName = "TODO: Your Name";
     public static String studentID = "TODO: Your 8-digit id";
@@ -105,7 +101,7 @@ public class Parser {
     {
         return currentToken.is(kind);
     }
-    
+
     private boolean have(NonTerminal nt)
     {
         return nt.firstSet().contains(currentToken.kind());
@@ -137,7 +133,7 @@ public class Parser {
         throw new QuitParseException(errorMessage);
         //return false;
     }
-        
+
     private boolean expect(NonTerminal nt)
     {
         if (accept(nt))
@@ -241,7 +237,6 @@ public class Parser {
             expression3();
         }
 
-
         exitRule(NonTerminal.EXPRESSION2);
     }
 
@@ -278,7 +273,7 @@ public class Parser {
     {
         enterRule(NonTerminal.CALL_EXPRESSION);
 
-        expect(NonTerminal.CALL_EXPRESSION);
+        expect(Token.Kind.CALL);
         expect(Token.Kind.IDENTIFIER);
         expect(Token.Kind.OPEN_PAREN);
         expressionList();

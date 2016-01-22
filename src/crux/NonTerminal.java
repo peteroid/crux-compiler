@@ -82,7 +82,7 @@ public enum NonTerminal {
     EXPRESSION_LIST(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
         {
-            // TODO: empty string?
+            // Empty
         }}),
     PARAMETER(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
@@ -92,7 +92,7 @@ public enum NonTerminal {
     PARAMETER_LIST(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
         {
-            // TODO: empty string?
+            // Empty
         }}),
     VARIABLE_DECLARATION(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
@@ -119,7 +119,7 @@ public enum NonTerminal {
     DECLARATION_LIST(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
         {
-            // TODO: empty string?
+            // Empty
         }}),    
     ASSIGNMENT_STATEMENT(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
@@ -164,7 +164,7 @@ public enum NonTerminal {
     STATEMENT_LIST(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
         {
-            // TODO: empty string?
+            // Empty
         }}),
     PROGRAM(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
