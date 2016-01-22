@@ -86,7 +86,8 @@ public class Parser {
     
     public Parser(Scanner scanner)
     {
-        throw new RuntimeException("implement this");
+        this.scanner = scanner;
+        currentToken = scanner.next();
     }
     
     public void parse()
@@ -205,8 +206,10 @@ public class Parser {
         enterRule(NonTerminal.EXPRESSION0);
 
         expression1();
-        if(accept(NonTerminal.OP0))
+        if(have(NonTerminal.OP0)) {
+            op0();
             expression1();
+        }
 
 
         exitRule(NonTerminal.EXPRESSION0);
@@ -218,8 +221,10 @@ public class Parser {
         enterRule(NonTerminal.EXPRESSION1);
 
         expression2();
-        while(accept(NonTerminal.OP1))
+        while (have(NonTerminal.OP1)) {
+            op1();
             expression2();
+        }
 
 
         exitRule(NonTerminal.EXPRESSION1);
@@ -231,8 +236,10 @@ public class Parser {
         enterRule(NonTerminal.EXPRESSION2);
 
         expression3();
-        while(accept(NonTerminal.OP2))
+        while (have(NonTerminal.OP2)) {
+            op2();
             expression3();
+        }
 
 
         exitRule(NonTerminal.EXPRESSION2);
@@ -253,11 +260,11 @@ public class Parser {
         } else if (accept(Token.Kind.OPEN_PAREN)) {
             expression0();
             expect(Token.Kind.CLOSE_PAREN);
-        } else if (accept(NonTerminal.DESIGNATOR)) {
+        } else if (have(NonTerminal.DESIGNATOR)) {
             designator();
-        } else if (accept(NonTerminal.CALL_EXPRESSION)) {
+        } else if (have(NonTerminal.CALL_EXPRESSION)) {
             callExpression();
-        } else if (accept(NonTerminal.LITERAL)) {
+        } else if (have(NonTerminal.LITERAL)) {
             literal();
         } else {
             throw new QuitParseException(reportSyntaxError(NonTerminal.EXPRESSION3));
@@ -285,7 +292,7 @@ public class Parser {
     {
         enterRule(NonTerminal.EXPRESSION_LIST);
 
-        if (accept(NonTerminal.EXPRESSION0)){
+        if (have(NonTerminal.EXPRESSION0)){
             expression0();
             while (accept(Token.Kind.COMMA))
                 expression0();
@@ -311,7 +318,7 @@ public class Parser {
     {
         enterRule(NonTerminal.PARAMETER_LIST);
 
-        if (accept(NonTerminal.PARAMETER)){
+        if (have(NonTerminal.PARAMETER)){
             parameter();
             while (accept(Token.Kind.COMMA))
                 parameter();
@@ -377,11 +384,11 @@ public class Parser {
     {
         enterRule(NonTerminal.DECLARATION);
 
-        if (accept(NonTerminal.VARIABLE_DECLARATION))
+        if (have(NonTerminal.VARIABLE_DECLARATION))
             variableDeclaration();
-        else if (accept(NonTerminal.ARRAY_DECLARATION))
+        else if (have(NonTerminal.ARRAY_DECLARATION))
             arrayDeclaration();
-        else if (accept(NonTerminal.FUNCTION_DEFINITION))
+        else if (have(NonTerminal.FUNCTION_DEFINITION))
             functionDefinition();
         else
             throw new QuitParseException(reportSyntaxError(NonTerminal.DECLARATION));
@@ -394,7 +401,7 @@ public class Parser {
     {
         enterRule(NonTerminal.DECLARATION_LIST);
 
-        while (accept(NonTerminal.DECLARATION))
+        while (have(NonTerminal.DECLARATION))
             declaration();
 
         exitRule(NonTerminal.DECLARATION_LIST);
@@ -407,7 +414,7 @@ public class Parser {
 
         expect(Token.Kind.LET);
         designator();
-        expect(Token.Kind.EQUAL);
+        expect(Token.Kind.ASSIGN);
         expression0();
         expect(Token.Kind.SEMICOLON);
 
@@ -419,7 +426,7 @@ public class Parser {
     {
         enterRule(NonTerminal.CALL_STATEMENT);
 
-        expect(NonTerminal.CALL_EXPRESSION);
+        callExpression();
         expect(Token.Kind.SEMICOLON);
 
         exitRule(NonTerminal.CALL_STATEMENT);
@@ -472,24 +479,24 @@ public class Parser {
      */
     public void statement()
     {
-        enterRule(NonTerminal.VARIABLE_DECLARATION);
+        enterRule(NonTerminal.STATEMENT);
 
-        if (accept(NonTerminal.VARIABLE_DECLARATION))
+        if (have(NonTerminal.VARIABLE_DECLARATION))
             variableDeclaration();
-        else if (accept(NonTerminal.CALL_STATEMENT))
+        else if (have(NonTerminal.CALL_STATEMENT))
             callStatement();
-        else if (accept(NonTerminal.ASSIGNMENT_STATEMENT))
+        else if (have(NonTerminal.ASSIGNMENT_STATEMENT))
             assignmentStatement();
-        else if (accept(NonTerminal.IF_STATEMENT))
+        else if (have(NonTerminal.IF_STATEMENT))
             ifStatement();
-        else if (accept(NonTerminal.WHILE_STATEMENT))
+        else if (have(NonTerminal.WHILE_STATEMENT))
             whileStatement();
-        else if (accept(NonTerminal.RETURN_STATEMENT))
+        else if (have(NonTerminal.RETURN_STATEMENT))
             returnStatement();
         else
             throw new QuitParseException(reportSyntaxError(NonTerminal.STATEMENT));
 
-        exitRule(NonTerminal.VARIABLE_DECLARATION);
+        exitRule(NonTerminal.STATEMENT);
     }
 
     // statement-list := { statement } .
@@ -497,7 +504,7 @@ public class Parser {
     {
         enterRule(NonTerminal.STATEMENT_LIST);
 
-        while (accept(NonTerminal.STATEMENT))
+        while (have(NonTerminal.STATEMENT))
             statement();
 
         exitRule(NonTerminal.STATEMENT_LIST);

@@ -59,6 +59,10 @@ public enum NonTerminal {
         private static final long serialVersionUID = 1L;
         {
             add(Token.Kind.NOT);
+            add(Token.Kind.OPEN_PAREN);
+            addAll(DESIGNATOR.firstSet());
+            addAll(CALL_EXPRESSION.firstSet());
+            addAll(LITERAL.firstSet());
        }}),
     EXPRESSION2(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
