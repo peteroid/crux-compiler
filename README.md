@@ -9,16 +9,17 @@ A project of the course, "Compilers & Interpreters". This is developed to compil
 ### Compile
 ```bash
 $ cd src
-$ javac crux/Compiler.java crux/Scanner.java crux/Token.java
+$ javac crux/Compiler.java crux/Scanner.java crux/Token.java crux/NonTerminal.java crux/Parser.java
 ```
 
 ### Execute
 ```bash
-$ java crux.Compiler {file_to_compile.crx}
+$ java crux.Compiler file_to_compile.crx
 ```
 
 ## Things done
-- Scanning
+- Scanner
+- Parser
 
 ## Things to be done
-- Parser
+- Symbol Table
