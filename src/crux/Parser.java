@@ -4,32 +4,6 @@ public class Parser {
     public static String studentName = "TODO: Your Name";
     public static String studentID = "TODO: Your 8-digit id";
     public static String uciNetID = "TODO: uci-net id";
-    
-// Grammar Rule Reporting ==========================================
-    private int parseTreeRecursionDepth = 0;
-    private StringBuffer parseTreeBuffer = new StringBuffer();
-
-    public void enterRule(NonTerminal nonTerminal) {
-        String lineData = new String();
-        for(int i = 0; i < parseTreeRecursionDepth; i++)
-        {
-            lineData += "  ";
-        }
-        lineData += nonTerminal.name();
-        //System.out.println("descending " + lineData);
-        parseTreeBuffer.append(lineData + "\n");
-        parseTreeRecursionDepth++;
-    }
-    
-    private void exitRule(NonTerminal nonTerminal)
-    {
-        parseTreeRecursionDepth--;
-    }
-    
-    public String parseTreeReport()
-    {
-        return parseTreeBuffer.toString();
-    }
 
 // Error Reporting ==========================================
     private StringBuffer errorBuffer = new StringBuffer();
@@ -85,15 +59,21 @@ public class Parser {
         this.scanner = scanner;
         currentToken = scanner.next();
     }
-    
+
     public void parse()
     {
+        initSymbolTable();
         try {
             program();
         } catch (QuitParseException q) {
             errorBuffer.append("SyntaxError(" + lineNumber() + "," + charPosition() + ")");
             errorBuffer.append("[Could not complete parsing.]");
         }
+    }
+
+    public void program()
+    {
+        throw new RuntimeException("implement symbol table into grammar rules");
     }
     
 // Helper Methods ==========================================
@@ -222,22 +202,5 @@ public class Parser {
         throw new QuitParseException(errorMessage);
         //return ErrorToken(errorMessage);
     }
-   
-// Parser ==========================================
-    
-    public void parse()
-    {
-        initSymbolTable();
-        try {
-            program();
-        } catch (QuitParseException q) {
-            errorBuffer.append("SyntaxError(" + lineNumber() + "," + charPosition() + ")");
-            errorBuffer.append("[Could not complete parsing.]");
-        }
-    }
 
-    public void program()
-    {
-        throw new RuntimeException("implement symbol table into grammar rules");
-    }
 }
