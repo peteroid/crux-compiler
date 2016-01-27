@@ -1,32 +1,76 @@
 package crux;
 
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SymbolTable {
 
-    private LinkedList<Map<String, Symbol>> mapList;
-    private SymbolTable parent;
+    private static final String[] PREDEFINED_IDENTIFIERS =
+            {
+                    "readInt",
+                    "readFloat",
+                    "printBool",
+                    "printInt",
+                    "printFloat",
+                    "println"
+            };
+
+    private Map<String, Symbol> symbolMap;
+    protected SymbolTable parent;
+    private int depth;
     
-    public SymbolTable()
+    public SymbolTable(SymbolTable parent)
     {
-        mapList = new LinkedList<Map<String, Symbol>>();
+        symbolMap = new LinkedHashMap<String, Symbol>();
+        if (parent != null)
+        {
+            this.parent = parent;
+            depth = parent.depth + 1;
+        }
+        else
+        {
+            depth = 0;
+            for (String s : PREDEFINED_IDENTIFIERS)
+                this.insert(s);
+        }
     }
     
     public Symbol lookup(String name) throws SymbolNotFoundError
     {
-        throw new RuntimeException("implement this");
+        Symbol s = symbolMap.get(name);
+        if (s == null)
+        {
+            if (parent != null)
+                return parent.lookup(name);
+            else
+                throw new SymbolNotFoundError(name);
+        }
+        else
+        {
+            return s;
+        }
     }
        
     public Symbol insert(String name) throws RedeclarationError
     {
-        throw new RuntimeException("implement this");
+        Symbol s = symbolMap.get(name);
+        if (s == null)
+        {
+            s = new Symbol(name);
+            symbolMap.put(name, s);
+            return s;
+        }
+        else
+        {
+            throw new RedeclarationError(s);
+        }
+
     }
     
     public String toString()
     {
         StringBuffer sb = new StringBuffer();
-        if (/*I have a parent table*/)
+        if (parent != null)
             sb.append(parent.toString());
         
         String indent = new String();
@@ -34,7 +78,7 @@ public class SymbolTable {
             indent += "  ";
         }
         
-        for (/*Every symbol, s, in this table*/)
+        for (Symbol s : symbolMap.values())
         {
             sb.append(indent + s.toString() + "\n");
         }
