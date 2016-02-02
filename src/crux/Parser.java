@@ -408,7 +408,6 @@ public class Parser {
             return true;
         String errorMessage = reportSyntaxError(kind);
         throw new QuitParseException(errorMessage);
-        //return false;
     }
 
     private boolean expect(NonTerminal nt)
@@ -417,7 +416,6 @@ public class Parser {
             return true;
         String errorMessage = reportSyntaxError(nt);
         throw new QuitParseException(errorMessage);
-        //return false;
     }
 
 // SymbolTable Management ==========================
@@ -487,7 +485,6 @@ public class Parser {
             return tok;
         String errorMessage = reportSyntaxError(kind);
         throw new QuitParseException(errorMessage);
-        //return ErrorToken(errorMessage);
     }
         
     private Token expectRetrieve(NonTerminal nt)
@@ -497,7 +494,6 @@ public class Parser {
             return tok;
         String errorMessage = reportSyntaxError(nt);
         throw new QuitParseException(errorMessage);
-        //return ErrorToken(errorMessage);
     }
 
 }
