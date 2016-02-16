@@ -178,6 +178,15 @@ public class Token {
 		this.kind = Kind.ERROR;
 		this.lexeme = lexeme;
 	}
+
+	// copy constructor
+	public Token(Token token)
+	{
+		this.lineNum = token.lineNumber();
+		this.charPos = token.charPosition();
+		this.kind = token.kind();
+		this.lexeme = token.lexeme();
+	}
 	
 	public int lineNumber()
 	{

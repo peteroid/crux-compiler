@@ -1,5 +1,7 @@
 package ast;
 
+import crux.Symbol;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -17,6 +19,15 @@ public class DeclarationList extends Command implements Iterable<Declaration> {
 	public void add(Declaration command)
 	{
 		list.add(command);
+	}
+
+
+	public List<Symbol> toSymbolList() {
+		List<Symbol> symbolList = new ArrayList<Symbol>();
+		for (Declaration declaration : list) {
+			symbolList.add(declaration.symbol());
+		}
+		return symbolList;
 	}
 
 	@Override
