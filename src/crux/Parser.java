@@ -96,9 +96,9 @@ public class Parser {
     public Token simpleGrammar(NonTerminal nt)
     {
         enterRule(nt);
-        expectRetrieve(nt);
+        Token token = expectRetrieve(nt);
         exitRule(nt);
-        return currentToken;
+        return token;
     }
 
     // literal := INTEGER | FLOAT | TRUE | FALSE .
@@ -116,25 +116,35 @@ public class Parser {
 
     // TODO: may have some error
     // designator := IDENTIFIER { "[" expression0 "]" } .
-    public Expression designator()
+    public Expression designator(boolean isAssignment)
     {
         enterRule(NonTerminal.DESIGNATOR);
 
+        Token token = new Token(this.currentToken);
         Expression expression = new AddressOf(
-                currentToken.lineNumber(),
-                currentToken.charPosition(),
+                lineNumber(),
+                charPosition(),
                 tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER)));
         while (accept(Token.Kind.OPEN_BRACKET)) {
             expression = new Index(
-                    currentToken.lineNumber(),
-                    currentToken.charPosition(),
+                    lineNumber(),
+                    charPosition(),
                     expression,
                     expression0());
             expect(Token.Kind.CLOSE_BRACKET);
         }
 
         exitRule(NonTerminal.DESIGNATOR);
-        return expression;
+        if (!isAssignment)
+            return new Dereference(token.lineNumber(), token.charPosition(), expression);
+        else
+            return expression;
+    }
+
+    // default methods
+    public Expression designator()
+    {
+        return designator(false);
     }
 
     // type := IDENTIFIER .
@@ -255,7 +265,9 @@ public class Parser {
     {
         enterRule(NonTerminal.EXPRESSION_LIST);
 
-        ExpressionList expressionList = new ExpressionList(currentToken.lineNumber(), currentToken.charPosition());
+        ExpressionList expressionList = new ExpressionList(
+                lineNumber(),
+                charPosition());
         if (have(NonTerminal.EXPRESSION0)){
             expressionList.add(expression0());
             while (accept(Token.Kind.COMMA))
@@ -272,8 +284,8 @@ public class Parser {
         enterRule(NonTerminal.VARIABLE_DECLARATION);
 
         VariableDeclaration variableDeclaration = new VariableDeclaration(
-                currentToken.lineNumber(),
-                currentToken.charPosition(),
+                lineNumber(),
+                charPosition(),
                 tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER))
         );
         expect(Token.Kind.COLON);
@@ -289,8 +301,8 @@ public class Parser {
         enterRule(NonTerminal.PARAMETER_LIST);
 
         DeclarationList declarationList = new DeclarationList(
-                currentToken.lineNumber(),
-                currentToken.charPosition());
+                lineNumber(),
+                charPosition());
         if (have(NonTerminal.PARAMETER)){
             declarationList.add(parameter());
             while (accept(Token.Kind.COMMA))
@@ -401,8 +413,8 @@ public class Parser {
         enterRule(NonTerminal.DECLARATION_LIST);
 
         DeclarationList declarationList = new DeclarationList(
-                currentToken.lineNumber(),
-                currentToken.charPosition()
+                lineNumber(),
+                charPosition()
         );
         while (have(NonTerminal.DECLARATION))
             declarationList.add(declaration());
@@ -418,7 +430,7 @@ public class Parser {
 
         Token token = new Token(this.currentToken);
         expect(Token.Kind.LET);
-        Expression dest = designator();
+        Expression dest = designator(true);
         expect(Token.Kind.ASSIGN);
         Expression source = expression0();
         expect(Token.Kind.SEMICOLON);
@@ -456,12 +468,15 @@ public class Parser {
         enterScope();
 
         StatementList thenBlock = statementBlock();
-        StatementList elseBlcok = null;
+        StatementList elseBlock = new StatementList(
+                lineNumber(),
+                charPosition()
+        );
         if (accept(Token.Kind.ELSE))
         {
             enterScope();
 
-            elseBlcok = statementBlock();
+            elseBlock = statementBlock();
         }
 
         exitRule(NonTerminal.IF_STATEMENT);
@@ -470,7 +485,7 @@ public class Parser {
                 token.charPosition(),
                 condition,
                 thenBlock,
-                elseBlcok
+                elseBlock
         );
     }
 
@@ -551,8 +566,8 @@ public class Parser {
         enterRule(NonTerminal.STATEMENT_LIST);
 
         StatementList statementList = new StatementList(
-                currentToken.lineNumber(),
-                currentToken.charPosition()
+                lineNumber(),
+                charPosition()
         );
         while (have(NonTerminal.STATEMENT))
             statementList.add(statement());
