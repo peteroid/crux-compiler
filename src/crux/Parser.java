@@ -18,7 +18,6 @@ public class Parser {
             lineData += "  ";
         }
         lineData += nonTerminal.name();
-        //System.out.println("descending " + lineData);
         parseTreeBuffer.append(lineData + "\n");
         parseTreeRecursionDepth++;
     }
@@ -114,7 +113,6 @@ public class Parser {
         return expr;
     }
 
-    // TODO: may have some error
     // designator := IDENTIFIER { "[" expression0 "]" } .
     public Expression designator(boolean isAssignment)
     {
@@ -224,9 +222,9 @@ public class Parser {
         enterRule(NonTerminal.EXPRESSION3);
 
         Expression expression;
-        Token currentToken = new Token(this.currentToken);
+        Token token = new Token(this.currentToken);
         if (accept(Token.Kind.NOT)){
-            expression = Command.newExpression(expression3(), currentToken, null);
+            expression = Command.newExpression(expression3(), token, null);
         } else if (accept(Token.Kind.OPEN_PAREN)) {
             expression = expression0();
             expect(Token.Kind.CLOSE_PAREN);
