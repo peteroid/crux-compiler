@@ -1,9 +1,39 @@
 package crux;
 
+import ast.Command;
+import ast.Expression;
+
 public class Parser {
     public static String studentName = "TODO: Your Name";
     public static String studentID = "TODO: Your 8-digit id";
     public static String uciNetID = "TODO: uci-net id";
+
+// Grammar Rule Reporting ==========================================
+    private int parseTreeRecursionDepth = 0;
+    private StringBuffer parseTreeBuffer = new StringBuffer();
+
+    public void enterRule(NonTerminal nonTerminal) {
+        String lineData = new String();
+        for(int i = 0; i < parseTreeRecursionDepth; i++)
+        {
+            lineData += "  ";
+        }
+        lineData += nonTerminal.name();
+        //System.out.println("descending " + lineData);
+        parseTreeBuffer.append(lineData + "\n");
+        parseTreeRecursionDepth++;
+    }
+
+    private void exitRule(NonTerminal nonTerminal)
+    {
+        parseTreeRecursionDepth--;
+    }
+
+    public String parseTreeReport()
+    {
+        return parseTreeBuffer.toString();
+    }
+
 
 // Error Reporting ==========================================
     private StringBuffer errorBuffer = new StringBuffer();
@@ -60,14 +90,13 @@ public class Parser {
         currentToken = scanner.next();
     }
 
-    public void parse()
+    public ast.Command parse()
     {
         initSymbolTable();
         try {
-            program();
+            return program();
         } catch (QuitParseException q) {
-            errorBuffer.append("SyntaxError(" + lineNumber() + "," + charPosition() + ")");
-            errorBuffer.append("[Could not complete parsing.]");
+            return new ast.Error(lineNumber(), charPosition(), "Could not complete parsing.");
         }
     }
 
@@ -77,9 +106,16 @@ public class Parser {
     }
 
     // literal := INTEGER | FLOAT | TRUE | FALSE .
-    public void literal()
+    public ast.Expression literal()
     {
-        simpleGrammar(NonTerminal.LITERAL);
+        ast.Expression expr;
+        enterRule(NonTerminal.LITERAL);
+
+        Token tok = expectRetrieve(NonTerminal.LITERAL);
+        expr = Command.newLiteral(tok);
+
+        exitRule(NonTerminal.LITERAL);
+        return expr;
     }
 
     // designator := IDENTIFIER { "[" expression0 "]" } .
@@ -367,12 +403,11 @@ public class Parser {
     }
 
     // program := declaration-list EOF .
-    public void program()
+    public ast.DeclarationList program()
     {
-        declarationList();
-        expect(Token.Kind.EOF);
+        throw new RuntimeException("add code to each grammar rule, to build as ast.");
     }
-    
+
 // Helper Methods ==========================================
     private boolean have(Token.Kind kind)
     {
@@ -414,6 +449,24 @@ public class Parser {
     {
         if (accept(nt))
             return true;
+        String errorMessage = reportSyntaxError(nt);
+        throw new QuitParseException(errorMessage);
+    }
+
+    private Token expectRetrieve(Token.Kind kind)
+    {
+        Token tok = currentToken;
+        if (accept(kind))
+            return tok;
+        String errorMessage = reportSyntaxError(kind);
+        throw new QuitParseException(errorMessage);
+    }
+
+    private Token expectRetrieve(NonTerminal nt)
+    {
+        Token tok = currentToken;
+        if (accept(nt))
+            return tok;
         String errorMessage = reportSyntaxError(nt);
         throw new QuitParseException(errorMessage);
     }
@@ -474,26 +527,6 @@ public class Parser {
         errorBuffer.append(message + "\n");
         errorBuffer.append(symbolTable.toString() + "\n");
         return message;
-    }    
-
-// Helper Methods ==========================================
-
-    private Token expectRetrieve(Token.Kind kind)
-    {
-        Token tok = currentToken;
-        if (accept(kind))
-            return tok;
-        String errorMessage = reportSyntaxError(kind);
-        throw new QuitParseException(errorMessage);
-    }
-        
-    private Token expectRetrieve(NonTerminal nt)
-    {
-        Token tok = currentToken;
-        if (accept(nt))
-            return tok;
-        String errorMessage = reportSyntaxError(nt);
-        throw new QuitParseException(errorMessage);
     }
 
 }
