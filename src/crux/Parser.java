@@ -29,12 +29,6 @@ public class Parser {
         parseTreeRecursionDepth--;
     }
 
-    public String parseTreeReport()
-    {
-        return parseTreeBuffer.toString();
-    }
-
-
 // Error Reporting ==========================================
     private StringBuffer errorBuffer = new StringBuffer();
     
