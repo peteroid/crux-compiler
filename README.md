@@ -9,7 +9,7 @@ A project of the course, "Compilers & Interpreters". This is developed to compil
 ### Compile
 ```bash
 $ cd src
-$ javac crux/Compiler.java crux/Scanner.java crux/Token.java crux/NonTerminal.java crux/Parser.java
+$ javac crux/Compiler.java crux/Scanner.java crux/Token.java crux/NonTerminal.java crux/Parser.java crux/Symbol.java crux/SymbolTable.java
 ```
 
 ### Execute
@@ -20,6 +20,7 @@ $ java crux.Compiler file_to_compile.crx
 ## Things done
 - Scanner
 - Parser
+- Symbol Table
 
 ## Things to be done
-- Symbol Table
+- Type checking
