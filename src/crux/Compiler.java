@@ -12,7 +12,7 @@ public class Compiler {
     public static void main(String[] args)
     {
         String sourceFilename = args[0];
-        
+
         Scanner s = null;
         try {
             s = new Scanner(new FileReader(sourceFilename));
@@ -23,13 +23,16 @@ public class Compiler {
         }
 
         Parser p = new Parser(s);
-        p.parse();
+        ast.Command syntaxTree = p.parse();
         if (p.hasError()) {
-            System.out.println("Error parsing file.");
+            System.out.println("Error parsing file " + sourceFilename);
             System.out.println(p.errorReport());
             System.exit(-3);
         }
-        System.out.println("Crux program successfully parsed.");
+        
+        ast.PrettyPrinter pp = new ast.PrettyPrinter();
+        syntaxTree.accept(pp);
+        System.out.println(pp.toString());
     }
 }
     
