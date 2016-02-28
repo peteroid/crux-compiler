@@ -12,7 +12,7 @@ public class Compiler {
     public static void main(String[] args)
     {
         String sourceFilename = args[0];
-        
+
         Scanner s = null;
         try {
             s = new Scanner(new FileReader(sourceFilename));
