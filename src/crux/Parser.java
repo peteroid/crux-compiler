@@ -1,6 +1,7 @@
 package crux;
 
 import ast.*;
+import types.*;
 
 public class Parser {
     public static String studentName = "TODO: Your Name";
@@ -719,5 +720,10 @@ public class Parser {
         errorBuffer.append(symbolTable.toString() + "\n");
         return message;
     }
+// Typing System ===================================
 
+    private Type tryResolveType(String typeStr)
+    {
+        return Type.getBaseType(typeStr);
+    }
 }
