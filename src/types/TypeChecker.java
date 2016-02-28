@@ -2,11 +2,13 @@ package types;
 
 import java.util.HashMap;
 import ast.*;
+import crux.Symbol;
 
 public class TypeChecker implements CommandVisitor {
     
     private HashMap<Command, Type> typeMap;
     private StringBuffer errorBuffer;
+    private Type currentFunctionType;
 
     /* Useful error strings:
      *
@@ -45,7 +47,7 @@ public class TypeChecker implements CommandVisitor {
         }
         typeMap.put(node, type);
     }
-    
+
     public Type getType(Command node)
     {
         return typeMap.get(node);
@@ -69,127 +71,167 @@ public class TypeChecker implements CommandVisitor {
 
     @Override
     public void visit(ExpressionList node) {
-        throw new RuntimeException("Implement this");
+        put(node, new VoidType());
     }
 
     @Override
     public void visit(DeclarationList node) {
-        throw new RuntimeException("Implement this");
+        for (Declaration declaration : node)
+            check((Command) declaration);
     }
 
     @Override
     public void visit(StatementList node) {
-        throw new RuntimeException("Implement this");
+        put(node, new VoidType());
+
+        for (Statement statement : node)
+            check((Command) statement);
     }
 
+    // FIXME
     @Override
     public void visit(AddressOf node) {
-        throw new RuntimeException("Implement this");
+        put(node, node.symbol().type());
     }
 
     @Override
     public void visit(LiteralBool node) {
-        throw new RuntimeException("Implement this");
+        put(node, new BoolType());
     }
 
     @Override
     public void visit(LiteralFloat node) {
-        throw new RuntimeException("Implement this");
+        put(node, new FloatType());
     }
 
     @Override
     public void visit(LiteralInt node) {
-        throw new RuntimeException("Implement this");
+        put(node, new IntType());
     }
 
     @Override
     public void visit(VariableDeclaration node) {
-        throw new RuntimeException("Implement this");
+        put(node, node.symbol().type());
     }
 
     @Override
     public void visit(ArrayDeclaration node) {
-        throw new RuntimeException("Implement this");
+        put(node, node.symbol().type());
     }
 
     @Override
     public void visit(FunctionDefinition node) {
-        throw new RuntimeException("Implement this");
+        if (node.function().name().equals("main") &&
+                !(((FuncType) node.function().type()).returnType() instanceof VoidType)) {
+            errorBuffer.append("Function main has invalid signature.");
+        }
+        for (Symbol symbol : node.arguments()) {
+            if (symbol.type() instanceof VoidType) {
+                errorBuffer.append("Function " + node.function().name() +
+                        " has a void argument in position " +
+                        node.arguments().indexOf(symbol) + ".");
+            }
+        }
+
+        currentFunctionType = node.function().type();
+        if (hasError()) {
+            put(node, new ErrorType(errorReport()));
+            errorBuffer = new StringBuffer();
+        } else {
+            put(node, currentFunctionType);
+        }
+
+        //explore the functions
+        check(node.body());
     }
 
     @Override
     public void visit(Comparison node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.leftSide()).compare(getType((Command) node.rightSide())));
     }
     
     @Override
     public void visit(Addition node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.leftSide()).add(getType((Command) node.rightSide())));
     }
     
     @Override
     public void visit(Subtraction node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.leftSide()).sub(getType((Command) node.rightSide())));
     }
     
     @Override
     public void visit(Multiplication node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.leftSide()).mul(getType((Command) node.rightSide())));
     }
     
     @Override
     public void visit(Division node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.leftSide()).div(getType((Command) node.rightSide())));
     }
     
     @Override
     public void visit(LogicalAnd node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.leftSide()).and(getType((Command) node.rightSide())));
     }
 
     @Override
     public void visit(LogicalOr node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.leftSide()).or(getType((Command) node.rightSide())));
     }
 
     @Override
     public void visit(LogicalNot node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.expression()).not());
     }
     
     @Override
     public void visit(Dereference node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.expression()).deref());
     }
 
     @Override
     public void visit(Index node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.base()).index(getType((Command) node.amount())));
     }
 
     @Override
     public void visit(Assignment node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.destination()).assign(getType((Command) node.source())));
     }
 
     @Override
     public void visit(Call node) {
-        throw new RuntimeException("Implement this");
+        put(node, node.function().type().call(getType(node.arguments())));
     }
 
     @Override
     public void visit(IfElseBranch node) {
-        throw new RuntimeException("Implement this");
+        Type type;
+        Type condType = getType((Command) node.condition());
+        if (getType((Command) node.condition()) instanceof BoolType) {
+            type = new VoidType();
+        } else {
+            type = new ErrorType("IfElseBranch requires bool condition not " + condType + ".");
+        }
+        put(node, type);
     }
 
     @Override
     public void visit(WhileLoop node) {
-        throw new RuntimeException("Implement this");
+        Type type;
+        Type condType = getType((Command) node.condition());
+        if (getType((Command) node.condition()) instanceof BoolType) {
+            type = new VoidType();
+        } else {
+            type = new ErrorType("WhileLoop requires bool condition not " + condType + ".");
+        }
+        put(node, type);
     }
 
     @Override
     public void visit(Return node) {
-        throw new RuntimeException("Implement this");
+        put(node, getType((Command) node.argument()));
     }
 
     @Override

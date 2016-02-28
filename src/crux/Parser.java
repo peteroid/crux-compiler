@@ -147,9 +147,10 @@ public class Parser {
     }
 
     // type := IDENTIFIER .
-    public Token type()
+    public Type type()
     {
-        return simpleGrammar(NonTerminal.TYPE);
+        Token token = simpleGrammar(NonTerminal.TYPE);
+        return Type.getBaseType(token.lexeme());
     }
 
     // op0 := ">=" | "<=" | "!=" | "==" | ">" | "<" .
@@ -282,13 +283,15 @@ public class Parser {
     {
         enterRule(NonTerminal.VARIABLE_DECLARATION);
 
+        Symbol symbol = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
         VariableDeclaration variableDeclaration = new VariableDeclaration(
                 lineNumber(),
                 charPosition(),
-                tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER))
+                symbol
         );
         expect(Token.Kind.COLON);
-        type();
+        Type type = type();
+        symbol.setType(type);
 
         exitRule(NonTerminal.VARIABLE_DECLARATION);
         return variableDeclaration;
@@ -321,7 +324,8 @@ public class Parser {
         expect(Token.Kind.VAR);
         Symbol symbol = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
         expect(Token.Kind.COLON);
-        type();
+        Type type = type();
+        symbol.setType(type);
         expect(Token.Kind.SEMICOLON);
 
         exitRule(NonTerminal.VARIABLE_DECLARATION);
@@ -340,9 +344,11 @@ public class Parser {
         expect(Token.Kind.ARRAY);
         Symbol symbol = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
         expect(Token.Kind.COLON);
-        type();
+        Type type = type();
         expect(Token.Kind.OPEN_BRACKET);
-        expect(Token.Kind.INTEGER);
+        Token intToken = expectRetrieve(Token.Kind.INTEGER);
+        // FIXME
+        symbol.setType(new ArrayType(Integer.parseInt(intToken.lexeme()), type));
         expect(Token.Kind.CLOSE_BRACKET);
         while (accept(Token.Kind.OPEN_BRACKET)) {
             expect(Token.Kind.INTEGER);
@@ -374,7 +380,8 @@ public class Parser {
         DeclarationList parameterList = parameterList();
         expect(Token.Kind.CLOSE_PAREN);
         expect(Token.Kind.COLON);
-        type();
+        Type type = type();
+        symbol.setType(new FuncType(parameterList.toTypeList(), type));
         StatementList statementList = statementBlock();
 
         exitRule(NonTerminal.FUNCTION_DEFINITION);
