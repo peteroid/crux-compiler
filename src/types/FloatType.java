@@ -46,6 +46,11 @@ public class FloatType extends Type {
     }
 
     @Override
+    public Type deref() {
+        return new AddressType(this);
+    }
+
+    @Override
     public boolean equivalent(Type that)
     {
         if (that == null)

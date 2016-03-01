@@ -27,6 +27,13 @@ public class AddressType extends Type {
     }
 
     @Override
+    public Type assign(Type source) {
+        if (source.equivalent(base))
+            return base;
+        return super.assign(source);
+    }
+
+    @Override
     public boolean equivalent(Type that) {
         if (that == null)
             return false;

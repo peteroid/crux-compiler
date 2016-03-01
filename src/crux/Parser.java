@@ -252,6 +252,9 @@ public class Parser {
         Token token = new Token(this.currentToken);
         expect(Token.Kind.CALL);
         Symbol symbol = tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+        if (SymbolTable.isPredefined(symbol.name())) {
+            symbol.setType(FuncType.predefinedFunc(symbol.name()));
+        }
         expect(Token.Kind.OPEN_PAREN);
         ExpressionList expressionList = expressionList();
         expect(Token.Kind.CLOSE_PAREN);
@@ -351,8 +354,9 @@ public class Parser {
         symbol.setType(new ArrayType(Integer.parseInt(intToken.lexeme()), type));
         expect(Token.Kind.CLOSE_BRACKET);
         while (accept(Token.Kind.OPEN_BRACKET)) {
-            expect(Token.Kind.INTEGER);
+            intToken = expectRetrieve(Token.Kind.INTEGER);
             expect(Token.Kind.CLOSE_BRACKET);
+            symbol.setType(new ArrayType(Integer.parseInt(intToken.lexeme()), symbol.type()));
         }
         expect(Token.Kind.SEMICOLON);
 

@@ -1,5 +1,6 @@
 package types;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import ast.*;
 import crux.Symbol;
@@ -8,7 +9,11 @@ public class TypeChecker implements CommandVisitor {
     
     private HashMap<Command, Type> typeMap;
     private StringBuffer errorBuffer;
-    private Type currentFunctionType;
+    private Symbol currentFunction;
+    private boolean returnFlag = false;
+    private boolean isInIf = false;
+    private int returnIfCount = 0;
+    private boolean isInWhile = false;
 
     /* Useful error strings:
      *
@@ -71,7 +76,13 @@ public class TypeChecker implements CommandVisitor {
 
     @Override
     public void visit(ExpressionList node) {
-        put(node, new VoidType());
+        TypeList typeList = new TypeList();
+        for (Expression expression : node) {
+            Command command = (Command) expression;
+            check(command);
+            typeList.append(getType(command));
+        }
+        put(node, typeList);
     }
 
     @Override
@@ -111,114 +122,197 @@ public class TypeChecker implements CommandVisitor {
 
     @Override
     public void visit(VariableDeclaration node) {
-        put(node, node.symbol().type());
+        Type type = node.symbol().type();
+        if (type instanceof ErrorType || type instanceof VoidType)
+            put(node, new ErrorType("Variable " + node.symbol().name() +
+                    " has invalid type " + type + "."));
+        else
+            put(node, type);
     }
 
     @Override
     public void visit(ArrayDeclaration node) {
-        put(node, node.symbol().type());
+        Type type = node.symbol().type();
+        Type invalidBase = ((ArrayType) type).isInvalid();
+        if (!(invalidBase == null))
+            put(node, new ErrorType("Array " + node.symbol().name() +
+                    " has invalid base type " + invalidBase + "."));
+        else
+            put(node, type);
     }
 
     @Override
     public void visit(FunctionDefinition node) {
         if (node.function().name().equals("main") &&
                 !(((FuncType) node.function().type()).returnType() instanceof VoidType)) {
-            errorBuffer.append("Function main has invalid signature.");
+            put(node, new ErrorType("Function main has invalid signature."));
         }
-        for (Symbol symbol : node.arguments()) {
-            if (symbol.type() instanceof VoidType) {
-                errorBuffer.append("Function " + node.function().name() +
+        for (int i = 0; i < node.arguments().size(); i++) {
+            Type type = node.arguments().get(i).type();
+            if (type instanceof VoidType) {
+                put(node, new ErrorType("Function " + node.function().name() +
                         " has a void argument in position " +
-                        node.arguments().indexOf(symbol) + ".");
+                        i + "."));
+            } else if (type instanceof ErrorType) {
+                put(node, new ErrorType("Function " + node.function().name() +
+                        " has an error in argument in position " +
+                        i + ": " + ((ErrorType) type).getMessage()));
             }
         }
 
-        currentFunctionType = node.function().type();
-        if (hasError()) {
-            put(node, new ErrorType(errorReport()));
-            errorBuffer = new StringBuffer();
-        } else {
-            put(node, currentFunctionType);
-        }
-
+        currentFunction = node.function();
+        put(node, currentFunction.type());
         //explore the functions
         check(node.body());
+
+        if (!(((FuncType) node.function().type()).returnType() instanceof VoidType) &&
+                !returnFlag) {
+            put(node, new ErrorType("Not all paths in function " +
+                    currentFunction.name() + " have a return."));
+            currentFunction = null;
+        } else {
+            returnFlag = false;
+        }
     }
 
     @Override
     public void visit(Comparison node) {
-        put(node, getType((Command) node.leftSide()).compare(getType((Command) node.rightSide())));
+        Command leftSide = (Command) node.leftSide();
+        Command rightSide = (Command) node.rightSide();
+        check(leftSide);
+        check(rightSide);
+        put(node, getType(leftSide).compare(getType(rightSide)));
     }
     
     @Override
     public void visit(Addition node) {
-        put(node, getType((Command) node.leftSide()).add(getType((Command) node.rightSide())));
+        Command leftSide = (Command) node.leftSide();
+        Command rightSide = (Command) node.rightSide();
+        check(leftSide);
+        check(rightSide);
+        put(node, getType(leftSide).add(getType(rightSide)));
     }
     
     @Override
     public void visit(Subtraction node) {
-        put(node, getType((Command) node.leftSide()).sub(getType((Command) node.rightSide())));
+        Command leftSide = (Command) node.leftSide();
+        Command rightSide = (Command) node.rightSide();
+        check(leftSide);
+        check(rightSide);
+        put(node, getType(leftSide).sub(getType(rightSide)));
     }
     
     @Override
     public void visit(Multiplication node) {
-        put(node, getType((Command) node.leftSide()).mul(getType((Command) node.rightSide())));
+        Command leftSide = (Command) node.leftSide();
+        Command rightSide = (Command) node.rightSide();
+        check(leftSide);
+        check(rightSide);
+        put(node, getType(leftSide).mul(getType(rightSide)));
     }
     
     @Override
     public void visit(Division node) {
-        put(node, getType((Command) node.leftSide()).div(getType((Command) node.rightSide())));
+        Command leftSide = (Command) node.leftSide();
+        Command rightSide = (Command) node.rightSide();
+        check(leftSide);
+        check(rightSide);
+        put(node, getType(leftSide).div(getType(rightSide)));
     }
     
     @Override
     public void visit(LogicalAnd node) {
-        put(node, getType((Command) node.leftSide()).and(getType((Command) node.rightSide())));
+        Command leftSide = (Command) node.leftSide();
+        Command rightSide = (Command) node.rightSide();
+        check(leftSide);
+        check(rightSide);
+        put(node, getType(leftSide).and(getType(rightSide)));
     }
 
     @Override
     public void visit(LogicalOr node) {
-        put(node, getType((Command) node.leftSide()).or(getType((Command) node.rightSide())));
+        Command leftSide = (Command) node.leftSide();
+        Command rightSide = (Command) node.rightSide();
+        check(leftSide);
+        check(rightSide);
+        put(node, getType(leftSide).or(getType(rightSide)));
     }
 
     @Override
     public void visit(LogicalNot node) {
-        put(node, getType((Command) node.expression()).not());
+        Command command = (Command) node.expression();
+        check(command);
+        put(node, getType(command).not());
     }
     
     @Override
     public void visit(Dereference node) {
-        put(node, getType((Command) node.expression()).deref());
+        check((Command) node.expression());
+        Type derefType = getType((Command) node.expression());
+        put(node, derefType);
     }
 
     @Override
     public void visit(Index node) {
-        put(node, getType((Command) node.base()).index(getType((Command) node.amount())));
+        Command base = (Command) node.base();
+        Command amount = (Command) node.amount();
+        check(base);
+        check(amount);
+        Type baseType = getType(base);
+
+        // Fixme
+        if (!(baseType instanceof ArrayType))
+            baseType = baseType.deref();
+        put(node, baseType.index(getType(amount)));
     }
 
     @Override
     public void visit(Assignment node) {
-        put(node, getType((Command) node.destination()).assign(getType((Command) node.source())));
+        Command destination = (Command) node.destination();
+        Command source = (Command) node.source();
+        check(destination);
+        check(source);
+        put(node, getType(destination).deref().assign(getType(source)));
+//        put(node, getType(destination).assign(getType(source)));
     }
 
     @Override
     public void visit(Call node) {
-        put(node, node.function().type().call(getType(node.arguments())));
+        Command arguments = node.arguments();
+        check(arguments);
+        Type type = node.function().type().call(getType(arguments));
+        put(node, type);
     }
 
     @Override
     public void visit(IfElseBranch node) {
+        Command condition = (Command) node.condition();
+        check(condition);
+
+        isInIf = true;
+        returnIfCount = 0;
         Type type;
-        Type condType = getType((Command) node.condition());
+        Type condType = getType(condition);
         if (getType((Command) node.condition()) instanceof BoolType) {
+            Command thenBlock = (Command) node.thenBlock();
+            Command elseBlock = (Command) node.elseBlock();
+            check(thenBlock);
+            check(elseBlock);
+
             type = new VoidType();
         } else {
             type = new ErrorType("IfElseBranch requires bool condition not " + condType + ".");
         }
         put(node, type);
+        isInIf = false;
     }
 
     @Override
     public void visit(WhileLoop node) {
+        Command condition = (Command) node.condition();
+        check(condition);
+
+        isInWhile = true;
         Type type;
         Type condType = getType((Command) node.condition());
         if (getType((Command) node.condition()) instanceof BoolType) {
@@ -227,11 +321,23 @@ public class TypeChecker implements CommandVisitor {
             type = new ErrorType("WhileLoop requires bool condition not " + condType + ".");
         }
         put(node, type);
+        isInWhile = false;
     }
 
     @Override
     public void visit(Return node) {
-        put(node, getType((Command) node.argument()));
+        check((Command) node.argument());
+
+
+        Type type = getType((Command) node.argument());
+        Type returnType = ((FuncType) currentFunction.type()).returnType();
+        if ((returnType.equivalent(type)))
+            put(node, type);
+        else
+            put(node, new ErrorType("Function " + currentFunction.name() + " returns " + returnType + " not " + type + "."));
+
+        returnFlag = true;
+
     }
 
     @Override

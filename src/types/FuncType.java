@@ -2,6 +2,27 @@ package types;
 
 public class FuncType extends Type {
 
+    public static FuncType predefinedFunc(String name) {
+        TypeList arguments = new TypeList();
+        if (name.equals("readInt")) {
+            return new FuncType(arguments, new IntType());
+        } else if (name.equals("readFloat")) {
+            return new FuncType(arguments, new FloatType());
+        } else if (name.equals("printBool")) {
+            arguments.append(new BoolType());
+            return new FuncType(arguments, new VoidType());
+        } else if (name.equals("printInt")) {
+            arguments.append(new IntType());
+            return new FuncType(arguments, new VoidType());
+        } else if (name.equals("printFloat")) {
+            arguments.append(new FloatType());
+            return new FuncType(arguments, new VoidType());
+        } else if (name.equals("println")) {
+            return new FuncType(arguments, new VoidType());
+        }
+        return null;
+    }
+
     private TypeList args;
     private Type ret;
 
@@ -24,10 +45,11 @@ public class FuncType extends Type {
     @Override
     public Type call(Type args)
     {
-        if (args.equivalent(arguments()))
-            return returnType();
-        else
-            return super.call(args);
+        if (args instanceof TypeList && !((TypeList) args).containsArrayType()) {
+            if (args.equivalent(arguments()))
+                return returnType();
+        }
+        return super.call(args);
     }
 
     @Override

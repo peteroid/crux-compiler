@@ -29,6 +29,16 @@ public class ArrayType extends Type {
         return base;
     }
 
+    public Type isInvalid() {
+        if (base instanceof ErrorType || base instanceof VoidType) {
+            return base;
+        } else if (base instanceof ArrayType) {
+            return ((ArrayType) base).isInvalid();
+        }
+
+        return null;
+    }
+
     @Override
     public String toString()
     {

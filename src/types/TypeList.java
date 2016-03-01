@@ -30,7 +30,16 @@ public class TypeList extends Type implements Iterable<Type> {
         sb.append(")");
         return sb.toString();
     }
-    
+
+    public boolean containsArrayType() {
+        for (Type type : list) {
+            if (type instanceof ArrayType)
+                return true;
+        }
+
+        return false;
+    }
+
     @Override
     public boolean equivalent(Type that) {
         if (that == null)
