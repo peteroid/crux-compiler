@@ -15,6 +15,14 @@ public class SymbolTable {
                     "println"
             };
 
+    public static boolean isPredefined(String name) {
+        for (String str : PREDEFINED_IDENTIFIERS) {
+            if (str.equals(name))
+                return true;
+        }
+        return false;
+    }
+
     private Map<String, Symbol> symbolMap;
     protected SymbolTable parent;
     private int depth;

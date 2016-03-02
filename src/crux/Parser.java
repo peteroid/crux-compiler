@@ -1,6 +1,9 @@
 package crux;
 
 import ast.*;
+import types.*;
+
+import java.util.Stack;
 
 public class Parser {
     public static String studentName = "TODO: Your Name";
@@ -146,9 +149,10 @@ public class Parser {
     }
 
     // type := IDENTIFIER .
-    public Token type()
+    public Type type()
     {
-        return simpleGrammar(NonTerminal.TYPE);
+        Token token = simpleGrammar(NonTerminal.TYPE);
+        return Type.getBaseType(token.lexeme());
     }
 
     // op0 := ">=" | "<=" | "!=" | "==" | ">" | "<" .
@@ -250,6 +254,9 @@ public class Parser {
         Token token = new Token(this.currentToken);
         expect(Token.Kind.CALL);
         Symbol symbol = tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+        if (SymbolTable.isPredefined(symbol.name())) {
+            symbol.setType(FuncType.predefinedFunc(symbol.name()));
+        }
         expect(Token.Kind.OPEN_PAREN);
         ExpressionList expressionList = expressionList();
         expect(Token.Kind.CLOSE_PAREN);
@@ -281,13 +288,15 @@ public class Parser {
     {
         enterRule(NonTerminal.VARIABLE_DECLARATION);
 
+        Symbol symbol = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
         VariableDeclaration variableDeclaration = new VariableDeclaration(
                 lineNumber(),
                 charPosition(),
-                tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER))
+                symbol
         );
         expect(Token.Kind.COLON);
-        type();
+        Type type = type();
+        symbol.setType(type);
 
         exitRule(NonTerminal.VARIABLE_DECLARATION);
         return variableDeclaration;
@@ -320,7 +329,8 @@ public class Parser {
         expect(Token.Kind.VAR);
         Symbol symbol = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
         expect(Token.Kind.COLON);
-        type();
+        Type type = type();
+        symbol.setType(type);
         expect(Token.Kind.SEMICOLON);
 
         exitRule(NonTerminal.VARIABLE_DECLARATION);
@@ -334,19 +344,30 @@ public class Parser {
     public Declaration arrayDeclaration()
     {
         enterRule(NonTerminal.ARRAY_DECLARATION);
+        Stack<Integer> arrayExtends = new Stack<Integer>();
 
         Token token = new Token(this.currentToken);
         expect(Token.Kind.ARRAY);
         Symbol symbol = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
         expect(Token.Kind.COLON);
-        type();
+        Type baseType = type();
         expect(Token.Kind.OPEN_BRACKET);
-        expect(Token.Kind.INTEGER);
+        Token intToken = expectRetrieve(Token.Kind.INTEGER);
+        arrayExtends.push(Integer.parseInt(intToken.lexeme()));
         expect(Token.Kind.CLOSE_BRACKET);
+
         while (accept(Token.Kind.OPEN_BRACKET)) {
-            expect(Token.Kind.INTEGER);
+            intToken = expectRetrieve(Token.Kind.INTEGER);
+            arrayExtends.push(Integer.parseInt(intToken.lexeme()));
             expect(Token.Kind.CLOSE_BRACKET);
         }
+
+        Type arrayType = null;
+        while (!arrayExtends.empty()) {
+            int extend = arrayExtends.pop();
+            arrayType = new ArrayType(extend, arrayType == null? baseType : arrayType);
+        }
+        symbol.setType(arrayType);
         expect(Token.Kind.SEMICOLON);
 
         exitRule(NonTerminal.ARRAY_DECLARATION);
@@ -373,7 +394,8 @@ public class Parser {
         DeclarationList parameterList = parameterList();
         expect(Token.Kind.CLOSE_PAREN);
         expect(Token.Kind.COLON);
-        type();
+        Type type = type();
+        symbol.setType(new FuncType(parameterList.toTypeList(), type));
         StatementList statementList = statementBlock();
 
         exitRule(NonTerminal.FUNCTION_DEFINITION);
@@ -719,5 +741,10 @@ public class Parser {
         errorBuffer.append(symbolTable.toString() + "\n");
         return message;
     }
+// Typing System ===================================
 
+    private Type tryResolveType(String typeStr)
+    {
+        return Type.getBaseType(typeStr);
+    }
 }
