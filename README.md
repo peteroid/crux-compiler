@@ -10,8 +10,8 @@ A project of the course, "Compilers & Interpreters". This is developed to compil
 ```bash
 $ cd src
 
-# for convenience, compile all available files
-$ javac crux/*.java ast/*.java
+# for convenience, compile all available .java files
+$ javac crux/*.java ast/*.java types/*.java
 ```
 
 ### Execute
@@ -25,7 +25,7 @@ $ java crux.Compiler file_to_compile.crx
 - Parser
 - Symbol Table
 - Abstract Parse Tree
+- Type checking
 
 ## Things to be done
-- Type checking
 - Code generation & Optimization
