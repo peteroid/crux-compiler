@@ -29,7 +29,7 @@ public class AddressType extends Type {
     @Override
     public Type assign(Type source) {
         if (source.equivalent(base))
-            return base;
+            return new VoidType();
         return super.assign(source);
     }
 

@@ -3,6 +3,8 @@ package crux;
 import ast.*;
 import types.*;
 
+import java.util.Stack;
+
 public class Parser {
     public static String studentName = "TODO: Your Name";
     public static String studentID = "TODO: Your 8-digit id";
@@ -342,22 +344,30 @@ public class Parser {
     public Declaration arrayDeclaration()
     {
         enterRule(NonTerminal.ARRAY_DECLARATION);
+        Stack<Integer> arrayExtends = new Stack<Integer>();
 
         Token token = new Token(this.currentToken);
         expect(Token.Kind.ARRAY);
         Symbol symbol = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
         expect(Token.Kind.COLON);
-        Type type = type();
+        Type baseType = type();
         expect(Token.Kind.OPEN_BRACKET);
         Token intToken = expectRetrieve(Token.Kind.INTEGER);
-        // FIXME
-        symbol.setType(new ArrayType(Integer.parseInt(intToken.lexeme()), type));
+        arrayExtends.push(Integer.parseInt(intToken.lexeme()));
         expect(Token.Kind.CLOSE_BRACKET);
+
         while (accept(Token.Kind.OPEN_BRACKET)) {
             intToken = expectRetrieve(Token.Kind.INTEGER);
+            arrayExtends.push(Integer.parseInt(intToken.lexeme()));
             expect(Token.Kind.CLOSE_BRACKET);
-            symbol.setType(new ArrayType(Integer.parseInt(intToken.lexeme()), symbol.type()));
         }
+
+        Type arrayType = null;
+        while (!arrayExtends.empty()) {
+            int extend = arrayExtends.pop();
+            arrayType = new ArrayType(extend, arrayType == null? baseType : arrayType);
+        }
+        symbol.setType(arrayType);
         expect(Token.Kind.SEMICOLON);
 
         exitRule(NonTerminal.ARRAY_DECLARATION);

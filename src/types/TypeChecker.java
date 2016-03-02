@@ -91,18 +91,28 @@ public class TypeChecker implements CommandVisitor {
             check((Command) declaration);
     }
 
+    // fixme put return type
     @Override
     public void visit(StatementList node) {
-        put(node, new VoidType());
+        Type returnType = new VoidType();
 
-        for (Statement statement : node)
-            check((Command) statement);
+        for (Statement statement : node) {
+            Command command = (Command) statement;
+            check(command);
+            Type type = getType(command);
+
+            if (!(type instanceof VoidType)) {
+                returnType = getType(command);
+            }
+        }
+
+        typeMap.put(node, returnType);
     }
 
     // FIXME
     @Override
     public void visit(AddressOf node) {
-        put(node, node.symbol().type());
+        put(node, node.symbol().type().deref());
     }
 
     @Override
@@ -127,7 +137,7 @@ public class TypeChecker implements CommandVisitor {
             put(node, new ErrorType("Variable " + node.symbol().name() +
                     " has invalid type " + type + "."));
         else
-            put(node, type);
+            put(node, new VoidType());
     }
 
     @Override
@@ -143,35 +153,38 @@ public class TypeChecker implements CommandVisitor {
 
     @Override
     public void visit(FunctionDefinition node) {
-        if (node.function().name().equals("main") &&
-                !(((FuncType) node.function().type()).returnType() instanceof VoidType)) {
-            put(node, new ErrorType("Function main has invalid signature."));
-        }
-        for (int i = 0; i < node.arguments().size(); i++) {
-            Type type = node.arguments().get(i).type();
-            if (type instanceof VoidType) {
-                put(node, new ErrorType("Function " + node.function().name() +
-                        " has a void argument in position " +
-                        i + "."));
-            } else if (type instanceof ErrorType) {
-                put(node, new ErrorType("Function " + node.function().name() +
-                        " has an error in argument in position " +
-                        i + ": " + ((ErrorType) type).getMessage()));
-            }
-        }
-
         currentFunction = node.function();
-        put(node, currentFunction.type());
-        //explore the functions
-        check(node.body());
+        Type expectedReturnType = ((FuncType) currentFunction.type()).returnType();
 
-        if (!(((FuncType) node.function().type()).returnType() instanceof VoidType) &&
-                !returnFlag) {
-            put(node, new ErrorType("Not all paths in function " +
-                    currentFunction.name() + " have a return."));
-            currentFunction = null;
+        if (node.function().name().equals("main") &&
+                !(expectedReturnType instanceof VoidType)) {
+            put(node, new ErrorType("Function main has invalid signature."));
         } else {
-            returnFlag = false;
+            for (int i = 0; i < node.arguments().size(); i++) {
+                Type type = node.arguments().get(i).type();
+                if (type instanceof VoidType) {
+                    put(node, new ErrorType("Function " + currentFunction.name() +
+                            " has a void argument in position " +
+                            i + "."));
+                    return;
+                } else if (type instanceof ErrorType) {
+                    put(node, new ErrorType("Function " + currentFunction.name() +
+                            " has an error in argument in position " +
+                            i + ": " + ((ErrorType) type).getMessage()));
+                    return;
+                }
+            }
+
+            //explore the functions
+            check(node.body());
+
+            Type actualReturnType = getType(node.body());
+            if (!(expectedReturnType instanceof VoidType) && actualReturnType instanceof VoidType) {
+                put(node, new ErrorType("Not all paths in function " +
+                        currentFunction.name() + " have a return."));
+            }
+
+            typeMap.put(node, actualReturnType);
         }
     }
 
@@ -249,7 +262,7 @@ public class TypeChecker implements CommandVisitor {
     public void visit(Dereference node) {
         check((Command) node.expression());
         Type derefType = getType((Command) node.expression());
-        put(node, derefType);
+        put(node, derefType.deref());
     }
 
     @Override
@@ -259,11 +272,11 @@ public class TypeChecker implements CommandVisitor {
         check(base);
         check(amount);
         Type baseType = getType(base);
-
+        Type amountType = getType(amount);
         // Fixme
-        if (!(baseType instanceof ArrayType))
-            baseType = baseType.deref();
-        put(node, baseType.index(getType(amount)));
+//        if (!(baseType instanceof ArrayType))
+//            baseType = baseType.deref();
+        put(node, baseType.index(amountType));
     }
 
     @Override
@@ -272,8 +285,8 @@ public class TypeChecker implements CommandVisitor {
         Command source = (Command) node.source();
         check(destination);
         check(source);
-        put(node, getType(destination).deref().assign(getType(source)));
-//        put(node, getType(destination).assign(getType(source)));
+        Type destType = getType(destination);
+        put(node, destType.assign(getType(source)));
     }
 
     @Override
@@ -299,7 +312,13 @@ public class TypeChecker implements CommandVisitor {
             check(thenBlock);
             check(elseBlock);
 
-            type = new VoidType();
+            Type thenType = getType(thenBlock);
+            Type elseType = getType(elseBlock);
+
+            if (getType(thenBlock) instanceof VoidType || getType(elseBlock) instanceof VoidType)
+                type = new VoidType();
+            else
+                type = getType(thenBlock); // either one should be fine
         } else {
             type = new ErrorType("IfElseBranch requires bool condition not " + condType + ".");
         }
@@ -326,18 +345,19 @@ public class TypeChecker implements CommandVisitor {
 
     @Override
     public void visit(Return node) {
-        check((Command) node.argument());
+        Command argument = (Command) node.argument();
+        check(argument);
+        Type actualReturnType = getType(argument);
+        Type expectedReturnType = ((FuncType) currentFunction.type()).returnType();
 
-
-        Type type = getType((Command) node.argument());
-        Type returnType = ((FuncType) currentFunction.type()).returnType();
-        if ((returnType.equivalent(type)))
-            put(node, type);
-        else
-            put(node, new ErrorType("Function " + currentFunction.name() + " returns " + returnType + " not " + type + "."));
-
-        returnFlag = true;
-
+        if (!actualReturnType.equivalent(expectedReturnType)) {
+            put(node, new ErrorType("Function " + currentFunction.name() +
+                    " returns " + expectedReturnType  + " not " +
+                    actualReturnType+ "."));
+        } else {
+            // can be either one returnType
+            put(node, actualReturnType);
+        }
     }
 
     @Override

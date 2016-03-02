@@ -22,18 +22,24 @@ public class ArrayType extends Type {
     }
 
     @Override
+    public Type deref()
+    {
+        return this;
+    }
+
+    @Override
     public Type index(Type that)
     {
         if(!(that instanceof IntType))
             super.index(that);
-        return base;
+        return base.deref();
     }
 
     public Type isInvalid() {
         if (base instanceof ErrorType || base instanceof VoidType) {
             return base;
         } else if (base instanceof ArrayType) {
-            return ((ArrayType) base).isInvalid();
+            return ((ArrayType) base()).isInvalid();
         }
 
         return null;
@@ -54,6 +60,6 @@ public class ArrayType extends Type {
             return false;
         
         ArrayType aType = (ArrayType)that;
-        return this.extent == aType.extent && base.equivalent(aType.base);
+        return this.extent() == aType.extent && base.equivalent(aType.base);
     }
 }

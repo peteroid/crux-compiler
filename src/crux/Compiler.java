@@ -1,8 +1,7 @@
 package crux;
-import java.io.File;
+
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.PrintStream;
 
 public class Compiler {
     public static String studentName = "TODO: Your Name";

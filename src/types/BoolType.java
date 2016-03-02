@@ -30,6 +30,11 @@ public class BoolType extends Type {
     }
 
     @Override
+    public Type deref() {
+        return new AddressType(this);
+    }
+
+    @Override
     public String toString()
     {
         return "bool";
