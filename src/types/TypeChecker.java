@@ -10,10 +10,6 @@ public class TypeChecker implements CommandVisitor {
     private HashMap<Command, Type> typeMap;
     private StringBuffer errorBuffer;
     private Symbol currentFunction;
-    private boolean returnFlag = false;
-    private boolean isInIf = false;
-    private int returnIfCount = 0;
-    private boolean isInWhile = false;
 
     /* Useful error strings:
      *
@@ -91,7 +87,6 @@ public class TypeChecker implements CommandVisitor {
             check((Command) declaration);
     }
 
-    // fixme put return type
     @Override
     public void visit(StatementList node) {
         Type returnType = new VoidType();
@@ -109,7 +104,6 @@ public class TypeChecker implements CommandVisitor {
         typeMap.put(node, returnType);
     }
 
-    // FIXME
     @Override
     public void visit(AddressOf node) {
         put(node, node.symbol().type().deref());
@@ -273,9 +267,6 @@ public class TypeChecker implements CommandVisitor {
         check(amount);
         Type baseType = getType(base);
         Type amountType = getType(amount);
-        // Fixme
-//        if (!(baseType instanceof ArrayType))
-//            baseType = baseType.deref();
         put(node, baseType.index(amountType));
     }
 
@@ -302,18 +293,13 @@ public class TypeChecker implements CommandVisitor {
         Command condition = (Command) node.condition();
         check(condition);
 
-        isInIf = true;
-        returnIfCount = 0;
         Type type;
         Type condType = getType(condition);
         if (getType((Command) node.condition()) instanceof BoolType) {
-            Command thenBlock = (Command) node.thenBlock();
-            Command elseBlock = (Command) node.elseBlock();
+            Command thenBlock = node.thenBlock();
+            Command elseBlock = node.elseBlock();
             check(thenBlock);
             check(elseBlock);
-
-            Type thenType = getType(thenBlock);
-            Type elseType = getType(elseBlock);
 
             if (getType(thenBlock) instanceof VoidType || getType(elseBlock) instanceof VoidType)
                 type = new VoidType();
@@ -323,7 +309,6 @@ public class TypeChecker implements CommandVisitor {
             type = new ErrorType("IfElseBranch requires bool condition not " + condType + ".");
         }
         put(node, type);
-        isInIf = false;
     }
 
     @Override
@@ -331,7 +316,6 @@ public class TypeChecker implements CommandVisitor {
         Command condition = (Command) node.condition();
         check(condition);
 
-        isInWhile = true;
         Type type;
         Type condType = getType((Command) node.condition());
         if (getType((Command) node.condition()) instanceof BoolType) {
@@ -340,7 +324,6 @@ public class TypeChecker implements CommandVisitor {
             type = new ErrorType("WhileLoop requires bool condition not " + condType + ".");
         }
         put(node, type);
-        isInWhile = false;
     }
 
     @Override
