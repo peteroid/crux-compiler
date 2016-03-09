@@ -54,13 +54,13 @@ public class Program {
     // Push an integer register on the stack
     public void pushInt(String reg)
     {
-        throw new RuntimeException("Implement pushing int register value to stack");
+        appendInstruction("sw " + reg + ", 0($sp)");
     }
     
     // Push a single precision floating point register on the stack
     public void pushFloat(String reg)
     {
-        throw new RuntimeException("Implement pushing float register value to stack");
+        appendInstruction("swc1 " + reg + ", 0($sp)");
     }
     
     // Pop an integer from the stack into register reg
@@ -76,17 +76,27 @@ public class Program {
     }
     
     // Insert a function prologue at position pos
+    // fixme
     public void insertPrologue(int pos, int frameSize)
     {
         ArrayList<String> prologue = new ArrayList<String>();
-        throw new RuntimeException("Implement creation of function prologue");
+        prologue.add("subu $sp, $sp, 8\n" +
+                "sw $fp, 0($sp)\n" +
+                "sw $ra, 4($sp)\n" +
+                "addi $fp, $sp, 8");
+        prologue.add("subu $sp, $sp, " + String.valueOf(frameSize));
         codeSegment.addAll(pos, prologue);
     }
     
     // Append a function epilogue
     public void appendEpilogue(int frameSize)
     {
-        throw new RuntimeException("Implement creation of function epilogue");
+        appendInstruction("addu $sp, $sp, " + String.valueOf(frameSize) + "\n" +
+                "lw $ra, 4($sp)\n" +
+                "lw $fp, 0($sp)\n" +
+                "addu $sp, $sp, 8\n" +
+                "jr $ra"
+        );
     }
 
     // Insert code that terminates the program
@@ -180,6 +190,7 @@ public class Program {
         s.println("syscall");
         s.println("li   $v0, 5");
         s.println("syscall");
+        s.println("sw   $v0, 0($sp)");
         s.println("jr $ra");
     }
     

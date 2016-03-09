@@ -3,6 +3,7 @@ package mips;
 import java.util.regex.Pattern;
 
 import ast.*;
+import crux.SymbolTable;
 import types.*;
 
 public class CodeGen implements ast.CommandVisitor {
@@ -11,6 +12,8 @@ public class CodeGen implements ast.CommandVisitor {
     private TypeChecker tc;
     private Program program;
     private ActivationRecord currentFunction;
+    private int sp = 0;
+    private int fp = 0;
 
     public CodeGen(TypeChecker tc)
     {
@@ -59,52 +62,74 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(DeclarationList node) {
-        throw new RuntimeException("Implement this");
+        for (Declaration declaration : node) {
+            declaration.accept(this);
+        }
     }
 
     @Override
     public void visit(StatementList node) {
-        throw new RuntimeException("Implement this");
+        for (Statement statement : node) {
+            statement.accept(this);
+        }
     }
 
     @Override
     public void visit(AddressOf node) {
-        throw new RuntimeException("Implement this");
+        currentFunction.getAddress(getProgram(), "$t0", node.symbol());
     }
 
     @Override
     public void visit(LiteralBool node) {
-        throw new RuntimeException("Implement this");
+        String boolString = node.value() == LiteralBool.Value.TRUE? "1" : "0";
+        sp = getProgram().appendInstruction("li $t0, " + boolString);
+        sp = getProgram().appendInstruction("sw $t0, 0($sp)");
     }
 
     @Override
     public void visit(LiteralFloat node) {
-        throw new RuntimeException("Implement this");
+        sp = getProgram().appendInstruction("li.s $f0, " + node.value().toString());
+        getProgram().pushFloat("$f0");
     }
 
     @Override
     public void visit(LiteralInt node) {
-        throw new RuntimeException("Implement this");
+        sp = getProgram().appendInstruction("li $t0, " + node.value().toString());
+        getProgram().pushInt("$t0");
     }
 
     @Override
     public void visit(VariableDeclaration node) {
-        throw new RuntimeException("Implement this");
+        currentFunction.add(getProgram(), node);
     }
 
     @Override
     public void visit(ArrayDeclaration node) {
-        throw new RuntimeException("Implement this");
+        currentFunction.add(getProgram(), node);
     }
 
     @Override
     public void visit(FunctionDefinition node) {
-        throw new RuntimeException("Implement this");
+        String functionLabel = "func." + node.function().name() + ":";
+        if (node.function().name().equals("main"))
+            functionLabel = "" + node.function().name() + ":";
+        sp = getProgram().appendInstruction(functionLabel);
+        getProgram().insertPrologue(sp + 1, node.arguments().size() * 4);
+        generate(node.body());
+        // local vars reservation
+
+        getProgram().appendEpilogue(node.arguments().size() * 4);
     }
 
     @Override
     public void visit(Addition node) {
-        throw new RuntimeException("Implement this");
+        node.leftSide().accept(this);
+        node.rightSide().accept(this);
+        if (tc.getType(node) instanceof IntType) {
+
+        } else if (tc.getType(node) instanceof FloatType) {
+
+        }
     }
 
     @Override
@@ -144,22 +169,45 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(Dereference node) {
-        throw new RuntimeException("Implement this");
+        node.expression().accept(this);
+        getProgram().appendInstruction("lw $t1, 0($t0)");
+        getProgram().appendInstruction("sw $t1, 0($sp)");
     }
 
     @Override
     public void visit(Index node) {
-        throw new RuntimeException("Implement this");
+        // $t0[$sp]
+        node.amount().accept(this);
+        getProgram().appendInstruction("lw $t2, 0($sp)");
+        getProgram().appendInstruction("li $t3, 4");
+        getProgram().appendInstruction("mul $t2, $t2, $t3");
+
+        node.base().accept(this);
+        getProgram().appendInstruction("add $t0, $t0, $t2");
     }
 
     @Override
     public void visit(Assignment node) {
-        throw new RuntimeException("Implement this");
+        node.source().accept(this); // data on stack
+        getProgram().appendInstruction("lw $t1, 0($sp)");
+
+        node.destination().accept(this); // address on $t0
+        getProgram().appendInstruction("sw $t1, 0($t0)");
     }
 
     @Override
     public void visit(Call node) {
-        throw new RuntimeException("Implement this");
+//        getProgram().insertPrologue(sp, node.arguments().size() * 4);
+        if (SymbolTable.isPredefined(node.function().name())) {
+            for (Expression expression : node.arguments()) {
+                expression.accept(this);
+            }
+        } else {
+            for (Expression expression : node.arguments()) {
+                expression.accept(this);
+            }
+        }
+        sp = getProgram().appendInstruction("jal func." + node.function().name());
     }
 
     @Override
@@ -179,7 +227,7 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(ast.Error node) {
-        String message = "CodeGen cannot compile a " + node);
+        String message = "CodeGen cannot compile a " + node;
         errorBuffer.append(message);
         throw new CodeGenException(message);
     }

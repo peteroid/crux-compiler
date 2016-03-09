@@ -105,18 +105,23 @@ class GlobalFrame extends ActivationRecord
     @Override
     public void add(Program prog, ast.VariableDeclaration var)
     {
-        throw new RuntimeException("implement adding variable to global data space");
+        String variableName = "data." + var.symbol().name();
+        prog.appendData(variableName + ": .word 0");
+
     }    
     
     @Override
     public void add(Program prog, ast.ArrayDeclaration array)
     {
-        throw new RuntimeException("implement adding array to global data space");
+        String arrayName = "data." + array.symbol().name();
+        int arraySize = ((ArrayType) array.symbol().type()).extent();
+        prog.appendData(arrayName + ": .space " + String.valueOf(arraySize * 4));
     }
         
     @Override
     public void getAddress(Program prog, String reg, Symbol sym)
     {
-        throw new RuntimeException("implement accessing address of global symbol");
+        String variableName = "data." + sym.name();
+        prog.appendInstruction("la " + reg + ", " + variableName);
     }
 }
