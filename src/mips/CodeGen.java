@@ -12,8 +12,6 @@ public class CodeGen implements ast.CommandVisitor {
     private TypeChecker tc;
     private Program program;
     private ActivationRecord currentFunction;
-    private int sp = 0;
-    private int fp = 0;
 
     public CodeGen(TypeChecker tc)
     {
@@ -82,19 +80,20 @@ public class CodeGen implements ast.CommandVisitor {
     @Override
     public void visit(LiteralBool node) {
         String boolString = node.value() == LiteralBool.Value.TRUE? "1" : "0";
-        sp = getProgram().appendInstruction("li $t0, " + boolString);
-        sp = getProgram().appendInstruction("sw $t0, 0($sp)");
+        getProgram().appendInstruction("addi $sp, $sp, -4");
+        getProgram().appendInstruction("li $t0, " + boolString);
+        getProgram().appendInstruction("sw $t0, 0($sp)");
     }
 
     @Override
     public void visit(LiteralFloat node) {
-        sp = getProgram().appendInstruction("li.s $f0, " + node.value().toString());
+        getProgram().appendInstruction("li.s $f0, " + node.value().toString());
         getProgram().pushFloat("$f0");
     }
 
     @Override
     public void visit(LiteralInt node) {
-        sp = getProgram().appendInstruction("li $t0, " + node.value().toString());
+        getProgram().appendInstruction("li $t0, " + node.value().toString());
         getProgram().pushInt("$t0");
     }
 
@@ -113,12 +112,20 @@ public class CodeGen implements ast.CommandVisitor {
         String functionLabel = "func." + node.function().name() + ":";
         if (node.function().name().equals("main"))
             functionLabel = "" + node.function().name() + ":";
-        sp = getProgram().appendInstruction(functionLabel);
-        getProgram().insertPrologue(sp + 1, node.arguments().size() * 4);
-        generate(node.body());
-        // local vars reservation
+        int labelPosition = getProgram().appendInstruction(functionLabel);
 
-        getProgram().appendEpilogue(node.arguments().size() * 4);
+        // set the new scope
+        currentFunction = new ActivationRecord(node, currentFunction);
+        node.body().accept(this);
+
+        // insert before the body with the size of local vars
+        int localVarsSize = currentFunction.stackSize();
+        getProgram().insertPrologue(labelPosition + 1, localVarsSize);
+
+        getProgram().appendEpilogue(localVarsSize);
+
+        // restore the scope
+        currentFunction = currentFunction.parent();
     }
 
     @Override
@@ -171,14 +178,15 @@ public class CodeGen implements ast.CommandVisitor {
     public void visit(Dereference node) {
         node.expression().accept(this);
         getProgram().appendInstruction("lw $t1, 0($t0)");
-        getProgram().appendInstruction("sw $t1, 0($sp)");
+        //getProgram().appendInstruction("sw $t1, 0($sp)");
+        getProgram().pushInt("$t1"); // fixme: can guarantee as an int?
     }
 
     @Override
     public void visit(Index node) {
         // $t0[$sp]
         node.amount().accept(this);
-        getProgram().appendInstruction("lw $t2, 0($sp)");
+        getProgram().popInt("$t2");
         getProgram().appendInstruction("li $t3, 4");
         getProgram().appendInstruction("mul $t2, $t2, $t3");
 
@@ -189,7 +197,14 @@ public class CodeGen implements ast.CommandVisitor {
     @Override
     public void visit(Assignment node) {
         node.source().accept(this); // data on stack
-        getProgram().appendInstruction("lw $t1, 0($sp)");
+        Type sourceType = tc.getType((Command) node.source());
+        if (sourceType instanceof IntType) {
+            getProgram().popInt("$t1");
+        } else if (sourceType instanceof FloatType) {
+            getProgram().popFloat("$t1");
+        } else {
+            throw new CodeGenException("Unknown type in assignment: " + sourceType.toString());
+        }
 
         node.destination().accept(this); // address on $t0
         getProgram().appendInstruction("sw $t1, 0($t0)");
@@ -197,17 +212,18 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(Call node) {
-//        getProgram().insertPrologue(sp, node.arguments().size() * 4);
-        if (SymbolTable.isPredefined(node.function().name())) {
-            for (Expression expression : node.arguments()) {
-                expression.accept(this);
-            }
-        } else {
-            for (Expression expression : node.arguments()) {
-                expression.accept(this);
-            }
+        for (Expression expression : node.arguments()) {
+            expression.accept(this);
         }
-        sp = getProgram().appendInstruction("jal func." + node.function().name());
+
+        getProgram().appendInstruction("jal func." + node.function().name());
+
+        // teardown
+        getProgram().appendInstruction("addi $sp, $sp, " + String.valueOf(node.arguments().size() * 4));
+        FuncType funcType = (FuncType) node.function().type();
+        if (!(funcType.returnType() instanceof VoidType)) {
+            getProgram().pushInt("$v0");
+        }
     }
 
     @Override

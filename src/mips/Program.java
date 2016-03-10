@@ -54,25 +54,29 @@ public class Program {
     // Push an integer register on the stack
     public void pushInt(String reg)
     {
+        appendInstruction("addi $sp, $sp, -4");
         appendInstruction("sw " + reg + ", 0($sp)");
     }
     
     // Push a single precision floating point register on the stack
     public void pushFloat(String reg)
     {
+        appendInstruction("addi $sp, $sp, -4");
         appendInstruction("swc1 " + reg + ", 0($sp)");
     }
     
     // Pop an integer from the stack into register reg
     public void popInt(String reg)
     {
-        throw new RuntimeException("Implement popping int from stack to register");
+        appendInstruction("lw " + reg + ", 0($sp)");
+        appendInstruction("addi $sp, $sp, 4");
     }
     
     // Pop a floating point value from the stack into register reg
     public void popFloat(String reg)
     {
-        throw new RuntimeException("Implement popping floating point from stack to register");
+        appendInstruction("lwc1 " + reg + ", 0($sp)");
+        appendInstruction("addi $sp, $sp, 4");
     }
     
     // Insert a function prologue at position pos
@@ -80,23 +84,22 @@ public class Program {
     public void insertPrologue(int pos, int frameSize)
     {
         ArrayList<String> prologue = new ArrayList<String>();
-        prologue.add("subu $sp, $sp, 8\n" +
-                "sw $fp, 0($sp)\n" +
-                "sw $ra, 4($sp)\n" +
-                "addi $fp, $sp, 8");
-        prologue.add("subu $sp, $sp, " + String.valueOf(frameSize));
+        prologue.add("addi $sp, $sp, -8");
+        prologue.add("sw $fp, 0($sp)");
+        prologue.add("sw $ra, 4($sp)");
+        prologue.add("addi $fp, $sp, 8");
+        prologue.add("addi $sp, $sp, -" + String.valueOf(frameSize));
         codeSegment.addAll(pos, prologue);
     }
     
     // Append a function epilogue
     public void appendEpilogue(int frameSize)
     {
-        appendInstruction("addu $sp, $sp, " + String.valueOf(frameSize) + "\n" +
-                "lw $ra, 4($sp)\n" +
-                "lw $fp, 0($sp)\n" +
-                "addu $sp, $sp, 8\n" +
-                "jr $ra"
-        );
+        appendInstruction("addi $sp, $sp, " + String.valueOf(frameSize));
+        appendInstruction("lw $ra, 4($sp)");
+        appendInstruction("lw $fp, 0($sp)");
+        appendInstruction("addi $sp, $sp, 8");
+        appendInstruction("jr $ra");
     }
 
     // Insert code that terminates the program

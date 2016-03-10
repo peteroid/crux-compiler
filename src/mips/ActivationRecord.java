@@ -77,17 +77,29 @@ public class ActivationRecord
     
     public void add(Program prog, ast.VariableDeclaration var)
     {
-        throw new RuntimeException("implement adding variable to local function space");
+        int varSize = numBytes(var.symbol().type());
+        locals.put(var.symbol(), varSize);
+        stackSize += varSize;
     }
     
     public void add(Program prog, ast.ArrayDeclaration array)
     {
-        throw new RuntimeException("implement adding array to local function space");
+        int arraySize = numBytes(array.symbol().type());
+        locals.put(array.symbol(), arraySize);
+        stackSize += arraySize;
     }
     
     public void getAddress(Program prog, String reg, Symbol sym)
     {
-        throw new RuntimeException("implement accessing address of local or parameter symbol");
+        Integer localsPosition = locals.get(sym);
+        Integer argumentPosition = arguments.get(sym);
+        if (localsPosition != null) {
+            prog.appendInstruction("la " + reg + ", " + String.valueOf(-8 - localsPosition) + "($fp)");
+        } else if (argumentPosition != null) {
+            prog.appendInstruction("la " + reg + ", " + argumentPosition.toString() + "($fp)");
+        } else {
+            parent().getAddress(prog, reg, sym);
+        }
     }
 }
 
@@ -114,8 +126,7 @@ class GlobalFrame extends ActivationRecord
     public void add(Program prog, ast.ArrayDeclaration array)
     {
         String arrayName = "data." + array.symbol().name();
-        int arraySize = ((ArrayType) array.symbol().type()).extent();
-        prog.appendData(arrayName + ": .space " + String.valueOf(arraySize * 4));
+        prog.appendData(arrayName + ": .space " + String.valueOf(numBytes(array.symbol().type())));
     }
         
     @Override
