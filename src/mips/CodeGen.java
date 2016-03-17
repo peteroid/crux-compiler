@@ -69,6 +69,15 @@ public class CodeGen implements ast.CommandVisitor {
     public void visit(StatementList node) {
         for (Statement statement : node) {
             statement.accept(this);
+
+            // pop the stack if there is a non-void call
+            if (statement instanceof Call) {
+                FuncType callFuncType = (FuncType) ((Call) statement).function().type();
+                if (!(callFuncType.returnType() instanceof VoidType)) {
+                    // shift the stack
+                    getProgram().appendInstruction("addi $sp, $sp, 4");
+                }
+            }
         }
     }
 
@@ -130,18 +139,40 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(Addition node) {
-        node.leftSide().accept(this);
-        node.rightSide().accept(this);
         if (tc.getType(node) instanceof IntType) {
-
+            node.leftSide().accept(this);
+            getProgram().popInt("$t1");
+            node.rightSide().accept(this);
+            getProgram().popInt("$t2");
+            getProgram().appendInstruction("add $t1, $t1, $t2");
+            getProgram().pushInt("$t1");
         } else if (tc.getType(node) instanceof FloatType) {
-
+            node.leftSide().accept(this);
+            getProgram().popFloat("$f1");
+            node.rightSide().accept(this);
+            getProgram().popFloat("$f2");
+            getProgram().appendInstruction("add.s $f1, $f1, $f2");
+            getProgram().pushFloat("$f1");
         }
     }
 
     @Override
     public void visit(Subtraction node) {
-        throw new RuntimeException("Implement this");
+        if (tc.getType(node) instanceof IntType) {
+            node.leftSide().accept(this);
+            getProgram().popInt("$t1");
+            node.rightSide().accept(this);
+            getProgram().popInt("$t2");
+            getProgram().appendInstruction("sub $t1, $t1, $t2");
+            getProgram().pushInt("$t1");
+        } else if (tc.getType(node) instanceof FloatType) {
+            node.leftSide().accept(this);
+            getProgram().popFloat("$f1");
+            node.rightSide().accept(this);
+            getProgram().popFloat("$f2");
+            getProgram().appendInstruction("sub.s $f1, $f1, $f2");
+            getProgram().pushFloat("$f1");
+        }
     }
 
     @Override
@@ -228,7 +259,27 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(IfElseBranch node) {
-        throw new RuntimeException("Implement this");
+        node.condition().accept(this);
+        // save the condition
+        getProgram().appendInstruction("lw $t1, 0($sp)");
+        getProgram().appendInstruction("addi $sp, $sp, 4");
+        String endLabel =  getProgram().newLabel();
+        String elseLabel =  getProgram().newLabel();
+
+        // jump to elseBlock if (condition == 0)
+        getProgram().appendInstruction("beqz $t1, " + elseLabel);
+
+        // thenBlock
+        node.thenBlock().accept(this);
+        getProgram().appendInstruction("jal " + endLabel);
+
+        // elseBlock
+        getProgram().appendInstruction(elseLabel + ":");
+        if (node.elseBlock() != null) {
+            node.elseBlock().accept(this);
+        }
+
+        getProgram().appendInstruction(endLabel + ":");
     }
 
     @Override
@@ -238,7 +289,10 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(Return node) {
-        throw new RuntimeException("Implement this");
+        // push the value to $v0
+        node.argument().accept(this); // assume the data is on the stack
+        getProgram().popInt("$v0");
+        return;
     }
 
     @Override
