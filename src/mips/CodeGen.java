@@ -1,13 +1,11 @@
 package mips;
 
-import java.util.regex.Pattern;
-
 import ast.*;
 import crux.SymbolTable;
 import types.*;
 
 public class CodeGen implements ast.CommandVisitor {
-    
+
     private StringBuffer errorBuffer = new StringBuffer();
     private TypeChecker tc;
     private Program program;
@@ -153,6 +151,8 @@ public class CodeGen implements ast.CommandVisitor {
             getProgram().popFloat("$f2");
             getProgram().appendInstruction("add.s $f1, $f1, $f2");
             getProgram().pushFloat("$f1");
+        } else {
+            throw new RuntimeException("Unknown Type");
         }
     }
 
@@ -172,6 +172,8 @@ public class CodeGen implements ast.CommandVisitor {
             getProgram().popFloat("$f2");
             getProgram().appendInstruction("sub.s $f1, $f1, $f2");
             getProgram().pushFloat("$f1");
+        } else {
+            throw new RuntimeException("Unknown Type");
         }
     }
 
@@ -202,7 +204,81 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(Comparison node) {
-        throw new RuntimeException("Implement this");
+        String trueLabel = getProgram().newLabel();
+        String joinLabel = getProgram().newLabel();
+        Type operandType = tc.getType((Command) node.leftSide());
+
+        if (operandType instanceof IntType) {
+            String branchInstruction = null;
+            switch (node.operation()) {
+                case EQ:
+                    branchInstruction = "beq";
+                    break;
+                case NE:
+                    branchInstruction = "bne";
+                    break;
+                case LE:
+                    branchInstruction = "blez";
+                    break;
+                case LT:
+                    branchInstruction = "bltz";
+                    break;
+                case GE:
+                    branchInstruction = "bgez";
+                    break;
+                case GT:
+                    branchInstruction = "bgtz";
+                    break;
+                default:
+                    throw new RuntimeException("Unknown Operation");
+            }
+
+            node.leftSide().accept(this);
+            getProgram().popInt("$t2");
+            node.rightSide().accept(this);
+            getProgram().popInt("$t3");
+
+            if (node.operation() == Comparison.Operation.EQ || node.operation() == Comparison.Operation.NE) {
+                getProgram().appendInstruction(branchInstruction + " $t2, $t3 " + trueLabel);
+            } else {
+                getProgram().appendInstruction("sub $t2, $t2, $t3");
+                getProgram().appendInstruction(branchInstruction + " $t2 " + trueLabel);
+            }
+            getProgram().appendInstruction("li $t0, 0");
+            getProgram().appendInstruction("jal " + joinLabel);
+            getProgram().appendInstruction(trueLabel + ":");
+            getProgram().appendInstruction("li $t0, 1");
+        } else if (operandType instanceof FloatType) {
+            node.leftSide().accept(this);
+            getProgram().popFloat("$f2");
+            node.rightSide().accept(this);
+            getProgram().popFloat("$f3");
+
+            if (node.operation() == Comparison.Operation.EQ || node.operation() == Comparison.Operation.NE) {
+                getProgram().appendInstruction("c.eq.s $f2, $f3");
+                getProgram().appendInstruction("bc1t " + trueLabel);
+                getProgram().appendInstruction("li $t0, " + (node.operation() == Comparison.Operation.EQ? "0" : "1"));
+                getProgram().appendInstruction("jal " + joinLabel);
+                getProgram().appendInstruction(trueLabel + ":");
+                getProgram().appendInstruction("li $t0, " + (node.operation() == Comparison.Operation.EQ? "1" : "0"));
+            } else {
+                // float condition: c.COND.FMT fs, ft
+                // float branch: bclt TARGET
+                String floatCondition = "c." + node.operation().name().toLowerCase() + ".s ";
+                getProgram().appendInstruction(floatCondition + " $f2, $f3");
+
+                getProgram().appendInstruction("bc1t " + trueLabel);
+                getProgram().appendInstruction("li $t0, 0");
+                getProgram().appendInstruction("jal " + joinLabel);
+                getProgram().appendInstruction(trueLabel + ":");
+                getProgram().appendInstruction("li $t0, 1");
+            }
+        } else {
+            throw new RuntimeException("Unknown Type");
+        }
+        getProgram().appendInstruction(joinLabel + ":");
+        getProgram().appendInstruction("addi $sp, $sp, -4");
+        getProgram().appendInstruction("sw $t0, 0($sp)");
     }
 
     @Override
