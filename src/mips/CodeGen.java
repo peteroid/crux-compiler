@@ -53,7 +53,9 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(ExpressionList node) {
-        throw new RuntimeException("Implement this");
+        for (Expression expression : node) {
+            expression.accept(this);
+        }
     }
 
     @Override
@@ -129,7 +131,9 @@ public class CodeGen implements ast.CommandVisitor {
         int localVarsSize = currentFunction.stackSize();
         getProgram().insertPrologue(labelPosition + 1, localVarsSize);
 
-        getProgram().appendEpilogue(localVarsSize);
+        Type actualReturnType = tc.getType(node);
+        if (actualReturnType instanceof VoidType)
+            getProgram().appendEpilogue(localVarsSize);
 
         // restore the scope
         currentFunction = currentFunction.parent();
@@ -202,7 +206,24 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(Division node) {
-        throw new RuntimeException("Implement this");
+        Type operandType = tc.getType(node);
+        if (operandType instanceof IntType) {
+            node.leftSide().accept(this);
+            node.rightSide().accept(this);
+            getProgram().popInt("$t2");
+            getProgram().popInt("$t1");
+            getProgram().appendInstruction("div $t1, $t1, $t2");
+            getProgram().pushInt("$t1");
+        } else if (operandType instanceof FloatType) {
+            node.leftSide().accept(this);
+            node.rightSide().accept(this);
+            getProgram().popFloat("$f2");
+            getProgram().popFloat("$f1");
+            getProgram().appendInstruction("div.s $f1, $f1, $f2");
+            getProgram().pushFloat("$f1");
+        } else {
+            throw new RuntimeException("Unknown Type");
+        }
     }
 
     @Override
@@ -387,9 +408,7 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(Call node) {
-        for (Expression expression : node.arguments()) {
-            expression.accept(this);
-        }
+        node.arguments().accept(this);
 
         getProgram().appendInstruction("jal func." + node.function().name());
 
@@ -445,7 +464,7 @@ public class CodeGen implements ast.CommandVisitor {
         // push the value to $v0
         node.argument().accept(this); // assume the data is on the stack
         getProgram().popInt("$v0");
-        return;
+        getProgram().appendEpilogue(currentFunction.stackSize());
     }
 
     @Override
