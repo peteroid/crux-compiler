@@ -189,12 +189,12 @@ public class CodeGen implements ast.CommandVisitor {
             getProgram().appendInstruction("mul $t2, $t1, $t2");
             getProgram().pushInt("$t2");
         } else if (operandType instanceof FloatType) {
-//            node.leftSide().accept(this);
-//            getProgram().popFloat("$f1");
-//            node.rightSide().accept(this);
-//            getProgram().popFloat("$f2");
-//            getProgram().appendInstruction("sub.s $f1, $f1, $f2");
-//            getProgram().pushFloat("$f1");
+            node.leftSide().accept(this);
+            node.rightSide().accept(this);
+            getProgram().popFloat("$f2");
+            getProgram().popFloat("$f1");
+            getProgram().appendInstruction("mul.s $f1, $f1, $f2");
+            getProgram().pushFloat("$f1");
         } else {
             throw new RuntimeException("Unknown Type");
         }
@@ -208,9 +208,9 @@ public class CodeGen implements ast.CommandVisitor {
     @Override
     public void visit(LogicalAnd node) {
         node.leftSide().accept(this);
-        getProgram().popBool("$t2");
         node.rightSide().accept(this);
         getProgram().popBool("$t3");
+        getProgram().popBool("$t2");
 
         getProgram().appendInstruction("and $t2, $t2, $t3");
         getProgram().pushBool("$t2");
@@ -220,9 +220,9 @@ public class CodeGen implements ast.CommandVisitor {
     public void visit(LogicalOr node) {
         // fixme: not test
         node.leftSide().accept(this);
-        getProgram().popBool("$t2");
         node.rightSide().accept(this);
         getProgram().popBool("$t3");
+        getProgram().popBool("$t2");
 
         getProgram().appendInstruction("or $t2, $t2, $t3");
         getProgram().pushBool("$t2");
@@ -271,9 +271,9 @@ public class CodeGen implements ast.CommandVisitor {
             }
 
             node.leftSide().accept(this);
-            getProgram().popInt("$t2");
             node.rightSide().accept(this);
             getProgram().popInt("$t3");
+            getProgram().popInt("$t2");
 
             if (node.operation() == Comparison.Operation.EQ || node.operation() == Comparison.Operation.NE) {
                 getProgram().appendInstruction(branchInstruction + " $t2, $t3 " + trueLabel);
@@ -287,9 +287,9 @@ public class CodeGen implements ast.CommandVisitor {
             getProgram().appendInstruction("li $t0, 1");
         } else if (operandType instanceof FloatType) {
             node.leftSide().accept(this);
-            getProgram().popFloat("$f2");
             node.rightSide().accept(this);
             getProgram().popFloat("$f3");
+            getProgram().popFloat("$f2");
 
             if (node.operation() == Comparison.Operation.EQ || node.operation() == Comparison.Operation.NE) {
                 getProgram().appendInstruction("c.eq.s $f2, $f3");
