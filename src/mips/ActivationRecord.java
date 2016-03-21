@@ -78,8 +78,8 @@ public class ActivationRecord
     public void add(Program prog, ast.VariableDeclaration var)
     {
         int varSize = numBytes(var.symbol().type());
-        locals.put(var.symbol(), varSize);
         stackSize += varSize;
+        locals.put(var.symbol(), stackSize);
     }
     
     public void add(Program prog, ast.ArrayDeclaration array)

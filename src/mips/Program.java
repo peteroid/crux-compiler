@@ -57,6 +57,16 @@ public class Program {
         appendInstruction("addi $sp, $sp, -4");
         appendInstruction("sw " + reg + ", 0($sp)");
     }
+
+    // pseudo function for pushing boolean
+    public void pushBool(String reg) {
+        pushInt(reg);
+    }
+
+    // pseudo function for pushing address
+    public void pushAddress(String reg) {
+        pushInt(reg);
+    }
     
     // Push a single precision floating point register on the stack
     public void pushFloat(String reg)
@@ -70,6 +80,16 @@ public class Program {
     {
         appendInstruction("lw " + reg + ", 0($sp)");
         appendInstruction("addi $sp, $sp, 4");
+    }
+
+    // pseudo function for popping boolean
+    public void popBool(String reg) {
+        popInt(reg);
+    }
+
+    // pseudo function for popping address
+    public void popAddress(String reg) {
+        popInt(reg);
     }
     
     // Pop a floating point value from the stack into register reg

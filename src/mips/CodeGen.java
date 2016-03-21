@@ -82,14 +82,14 @@ public class CodeGen implements ast.CommandVisitor {
     @Override
     public void visit(AddressOf node) {
         currentFunction.getAddress(getProgram(), "$t0", node.symbol());
+        getProgram().pushAddress("$t0");
     }
 
     @Override
     public void visit(LiteralBool node) {
         String boolString = node.value() == LiteralBool.Value.TRUE? "1" : "0";
-        getProgram().appendInstruction("addi $sp, $sp, -4");
         getProgram().appendInstruction("li $t0, " + boolString);
-        getProgram().appendInstruction("sw $t0, 0($sp)");
+        getProgram().pushBool("$t0");
     }
 
     @Override
@@ -139,16 +139,16 @@ public class CodeGen implements ast.CommandVisitor {
     public void visit(Addition node) {
         if (tc.getType(node) instanceof IntType) {
             node.leftSide().accept(this);
-            getProgram().popInt("$t1");
             node.rightSide().accept(this);
             getProgram().popInt("$t2");
+            getProgram().popInt("$t1");
             getProgram().appendInstruction("add $t1, $t1, $t2");
             getProgram().pushInt("$t1");
         } else if (tc.getType(node) instanceof FloatType) {
             node.leftSide().accept(this);
-            getProgram().popFloat("$f1");
             node.rightSide().accept(this);
             getProgram().popFloat("$f2");
+            getProgram().popFloat("$f1");
             getProgram().appendInstruction("add.s $f1, $f1, $f2");
             getProgram().pushFloat("$f1");
         } else {
@@ -158,18 +158,19 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(Subtraction node) {
-        if (tc.getType(node) instanceof IntType) {
+        Type operandType = tc.getType(node);
+        if (operandType instanceof IntType) {
             node.leftSide().accept(this);
-            getProgram().popInt("$t1");
             node.rightSide().accept(this);
             getProgram().popInt("$t2");
+            getProgram().popInt("$t1");
             getProgram().appendInstruction("sub $t1, $t1, $t2");
             getProgram().pushInt("$t1");
-        } else if (tc.getType(node) instanceof FloatType) {
+        } else if (operandType instanceof FloatType) {
             node.leftSide().accept(this);
-            getProgram().popFloat("$f1");
             node.rightSide().accept(this);
             getProgram().popFloat("$f2");
+            getProgram().popFloat("$f1");
             getProgram().appendInstruction("sub.s $f1, $f1, $f2");
             getProgram().pushFloat("$f1");
         } else {
@@ -179,7 +180,24 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(Multiplication node) {
-        throw new RuntimeException("Implement this");
+        Type operandType = tc.getType(node);
+        if (operandType instanceof IntType) {
+            node.leftSide().accept(this);
+            node.rightSide().accept(this);
+            getProgram().popInt("$t2");
+            getProgram().popInt("$t1");
+            getProgram().appendInstruction("mul $t2, $t1, $t2");
+            getProgram().pushInt("$t2");
+        } else if (operandType instanceof FloatType) {
+//            node.leftSide().accept(this);
+//            getProgram().popFloat("$f1");
+//            node.rightSide().accept(this);
+//            getProgram().popFloat("$f2");
+//            getProgram().appendInstruction("sub.s $f1, $f1, $f2");
+//            getProgram().pushFloat("$f1");
+        } else {
+            throw new RuntimeException("Unknown Type");
+        }
     }
 
     @Override
@@ -189,17 +207,36 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(LogicalAnd node) {
-        throw new RuntimeException("Implement this");
+        node.leftSide().accept(this);
+        getProgram().popBool("$t2");
+        node.rightSide().accept(this);
+        getProgram().popBool("$t3");
+
+        getProgram().appendInstruction("and $t2, $t2, $t3");
+        getProgram().pushBool("$t2");
     }
 
     @Override
     public void visit(LogicalOr node) {
-        throw new RuntimeException("Implement this");
+        // fixme: not test
+        node.leftSide().accept(this);
+        getProgram().popBool("$t2");
+        node.rightSide().accept(this);
+        getProgram().popBool("$t3");
+
+        getProgram().appendInstruction("or $t2, $t2, $t3");
+        getProgram().pushBool("$t2");
     }
     
     @Override
     public void visit(LogicalNot node) {
-        throw new RuntimeException("Implement this");
+        // fixme: not test
+        node.expression().accept(this);
+        getProgram().popBool("$t2");
+
+        getProgram().appendInstruction("li $t3, -1");
+        getProgram().appendInstruction("xor $t2, $t2, $t3");
+        getProgram().pushBool("$t2");
     }
 
     @Override
@@ -277,28 +314,56 @@ public class CodeGen implements ast.CommandVisitor {
             throw new RuntimeException("Unknown Type");
         }
         getProgram().appendInstruction(joinLabel + ":");
-        getProgram().appendInstruction("addi $sp, $sp, -4");
-        getProgram().appendInstruction("sw $t0, 0($sp)");
+        getProgram().pushBool("$t0");
     }
 
     @Override
     public void visit(Dereference node) {
         node.expression().accept(this);
-        getProgram().appendInstruction("lw $t1, 0($t0)");
+        getProgram().popAddress("$t0");
+        getProgram().appendInstruction("lw $t2, 0($t0)");
         //getProgram().appendInstruction("sw $t1, 0($sp)");
-        getProgram().pushInt("$t1"); // fixme: can guarantee as an int?
+        getProgram().pushInt("$t2"); // fixme: can guarantee as an int?
     }
 
     @Override
     public void visit(Index node) {
+        // fixme: only support 2D array
         // $t0[$sp]
-        node.amount().accept(this);
-        getProgram().popInt("$t2");
-        getProgram().appendInstruction("li $t3, 4");
-        getProgram().appendInstruction("mul $t2, $t2, $t3");
+        // push the address and amount on the stack
+        // structure: (-) amountN ... amount1 address (+)
 
-        node.base().accept(this);
-        getProgram().appendInstruction("add $t0, $t0, $t2");
+        node.amount().accept(this);
+
+        if (node.base() instanceof Index) {
+            // push the index for multi-dimensional array
+            node.base().accept(this);
+        } else {
+            node.base().accept(this); // address
+            getProgram().popAddress("$t0"); // address
+            getProgram().popInt("$t3"); // index
+
+            ArrayType arrType = (ArrayType) tc.getType((Command) node.base());
+
+            // support 2D
+            if (arrType.base() instanceof ArrayType) {
+                int scale = arrType.extent();
+
+                // build the offset
+                getProgram().popInt("$t2"); // index
+                getProgram().appendInstruction("li $t1, " + String.valueOf(scale));
+                getProgram().appendInstruction("mul $t2, $t2, $t1");
+                getProgram().appendInstruction("add $t3, $t3, $t2");
+            }
+
+            // set up index
+            getProgram().appendInstruction("li $t4, 4");
+            getProgram().appendInstruction("mul $t3, $t3, $t4");
+
+            // set up entry address
+            getProgram().appendInstruction("add $t0, $t0, $t3");
+            getProgram().pushAddress("$t0");
+        }
     }
 
     @Override
@@ -306,15 +371,18 @@ public class CodeGen implements ast.CommandVisitor {
         node.source().accept(this); // data on stack
         Type sourceType = tc.getType((Command) node.source());
         if (sourceType instanceof IntType) {
-            getProgram().popInt("$t1");
+            node.destination().accept(this); // address on stack
+            getProgram().popAddress("$t0");
+            getProgram().popInt("$t2");
+            getProgram().appendInstruction("sw $t2, 0($t0)");
         } else if (sourceType instanceof FloatType) {
-            getProgram().popFloat("$t1");
+            node.destination().accept(this); // address on stack
+            getProgram().popAddress("$t0");
+            getProgram().popFloat("$f1");
+            getProgram().appendInstruction("swc1 $f1, 0($t0)");
         } else {
             throw new CodeGenException("Unknown type in assignment: " + sourceType.toString());
         }
-
-        node.destination().accept(this); // address on $t0
-        getProgram().appendInstruction("sw $t1, 0($t0)");
     }
 
     @Override
@@ -337,8 +405,7 @@ public class CodeGen implements ast.CommandVisitor {
     public void visit(IfElseBranch node) {
         node.condition().accept(this);
         // save the condition
-        getProgram().appendInstruction("lw $t1, 0($sp)");
-        getProgram().appendInstruction("addi $sp, $sp, 4");
+        getProgram().popBool("$t1");
         String endLabel =  getProgram().newLabel();
         String elseLabel =  getProgram().newLabel();
 
@@ -360,7 +427,17 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(WhileLoop node) {
-        throw new RuntimeException("Implement this");
+        String beforeLabel = getProgram().newLabel();
+        String afterLabel = getProgram().newLabel();
+
+        getProgram().appendInstruction(beforeLabel + ":");
+        node.condition().accept(this);
+        getProgram().popBool("$t2");
+        getProgram().appendInstruction("bne $t2, 1, " + afterLabel);
+        node.body().accept(this);
+        getProgram().appendInstruction("jal " + beforeLabel);
+        getProgram().appendInstruction(afterLabel + ":");
+
     }
 
     @Override
