@@ -255,8 +255,17 @@ public class CodeGen implements ast.CommandVisitor {
         node.expression().accept(this);
         getProgram().popBool("$t2");
 
-        getProgram().appendInstruction("li $t3, -1");
-        getProgram().appendInstruction("xor $t2, $t2, $t3");
+        String trueLabel = getProgram().newLabel();
+        String joinLabel = getProgram().newLabel();
+
+        getProgram().appendInstruction("li $t3, 1");
+        getProgram().appendInstruction("beq $t2, $t3, " + trueLabel);
+        getProgram().appendInstruction("li $t2, 1");
+        getProgram().appendInstruction("jal " + joinLabel);
+        getProgram().appendInstruction(trueLabel + ":");
+        getProgram().appendInstruction("li $t2, 0");
+        getProgram().appendInstruction(joinLabel + ":");
+
         getProgram().pushBool("$t2");
     }
 
@@ -401,6 +410,11 @@ public class CodeGen implements ast.CommandVisitor {
             getProgram().popAddress("$t0");
             getProgram().popFloat("$f1");
             getProgram().appendInstruction("swc1 $f1, 0($t0)");
+        } else if (sourceType instanceof BoolType) {
+            node.destination().accept(this); // address on stack
+            getProgram().popAddress("$t0");
+            getProgram().popBool("$t2");
+            getProgram().appendInstruction("sw $t2, 0($t0)");
         } else {
             throw new CodeGenException("Unknown type in assignment: " + sourceType.toString());
         }
