@@ -1,32 +1,18 @@
 package crux;
-import java.io.BufferedReader;
+
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.io.RandomAccessFile;
 
 public class Compiler {
-    public static String studentName = "Kin Fai Chow";
-    public static String studentID = "51554242";
-    public static String uciNetID = "kfchow";
-
-    public static void main(String[] args) throws IOException, InterruptedException
+    public static String studentName = "TODO: Your Name";
+    public static String studentID = "TODO: Your 8-digit id";
+    public static String uciNetID = "TODO: uci-net id";
+    
+    public static void main(String[] args)
     {
-        //String sourceFilename = args[0];
-        //crux(sourceFilename);
-        for (int i=1; i<=10; ++i) {
-            String sourceFilename = String.format("tests/private/testP%02d.crx", i);
-            crux(sourceFilename);
-            spim(sourceFilename);
-        }
-    }
-
-    public static void crux(String sourceFilename)
-    {
-        //System.out.println("Lab6 running crux on " + sourceFilename);
+        String sourceFilename = args[0];
 
         Scanner s = null;
         try {
@@ -40,6 +26,7 @@ public class Compiler {
         Parser p = new Parser(s);
         ast.Command syntaxTree = p.parse();
         if (p.hasError()) {
+            System.out.println("Error parsing file " + sourceFilename);
             System.out.println(p.errorReport());
             System.exit(-3);
         }
@@ -47,6 +34,7 @@ public class Compiler {
         types.TypeChecker tc = new types.TypeChecker();
         tc.check(syntaxTree);
         if (tc.hasError()) {
+            System.out.println("Error type-checking file " + sourceFilename);
             System.out.println(tc.errorReport());
             System.exit(-4);
         }
@@ -54,6 +42,7 @@ public class Compiler {
         mips.CodeGen cg = new mips.CodeGen(tc);
         cg.generate(syntaxTree);
         if (cg.hasError()) {
+            System.out.println("Error generating code for file " + sourceFilename);
             System.out.println(cg.errorReport());
             System.exit(-5);
         }
@@ -70,42 +59,6 @@ public class Compiler {
             System.err.println("Error writing assembly file: \"" + asmFilename + "\"");
             System.exit(-6);
         }
-    }
-
-    public static void spim(String sourceFilename) throws IOException, InterruptedException
-    {
-        String asmFilename = sourceFilename.replace(".crx", ".asm");
-        System.out.println("Lab6 running spim on " + asmFilename);
-
-        // run spim on the output asm
-        Process spim = Runtime.getRuntime().exec("spim -file " + asmFilename);
-
-        // send the input to spim process
-        String inputFilename = sourceFilename.replace(".crx", ".in");
-        RandomAccessFile inputFile = new RandomAccessFile(inputFilename, "r");
-        byte input[] = new byte[(int)inputFile.length()];
-        inputFile.read(input);
-        spim.getOutputStream().write(input);
-        spim.getOutputStream().flush();
-        inputFile.close();
-
-        // wait 20 secs for spim to execute
-        Thread.sleep(1000 * 20);
-
-        // read back what spim produced
-        String outputFilename = sourceFilename.replace(".crx", ".out");
-        FileWriter outputFile = new FileWriter(outputFilename);
-        BufferedReader spimOutput = new BufferedReader(new InputStreamReader(spim.getInputStream()));
-        for (int i=0; i<5; ++i) // skip spim preamble
-            spimOutput.readLine();
-        while(spimOutput.ready()) {
-            outputFile.append((char)spimOutput.read());
-        }
-
-        // force spim to die
-        spim.destroy();
-        outputFile.close();
-
     }
 }
     
