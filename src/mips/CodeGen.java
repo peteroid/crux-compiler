@@ -1,7 +1,6 @@
 package mips;
 
 import ast.*;
-import crux.SymbolTable;
 import types.*;
 
 public class CodeGen implements ast.CommandVisitor {
@@ -352,8 +351,8 @@ public class CodeGen implements ast.CommandVisitor {
         node.expression().accept(this);
         getProgram().popAddress("$t0");
         getProgram().appendInstruction("lw $t2, 0($t0)");
-        //getProgram().appendInstruction("sw $t1, 0($sp)");
-        getProgram().pushInt("$t2"); // fixme: can guarantee as an int?
+        // fixme: only support int
+        getProgram().pushInt("$t2");
     }
 
     @Override
