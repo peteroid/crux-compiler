@@ -323,6 +323,7 @@ public class TypeChecker implements CommandVisitor {
         } else {
             type = new ErrorType("WhileLoop requires bool condition not " + condType + ".");
         }
+        check(node.body());
         put(node, type);
     }
 
