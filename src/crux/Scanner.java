@@ -5,10 +5,11 @@ import java.io.Reader;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+public class Scanner implements Iterable<Token>, Iterator<Token> {
+
 	public static String studentName = "TODO: YOUR NAME";
 	public static String studentID = "TODO: Your 8-digit id";
 	public static String uciNetID = "TODO: uci-net id";
-public class Scanner implements Iterable<Token>, Iterator<Token> {
 	
 	private int lineNum;  // current line count
 	private int charPos;  // character offset for current line
